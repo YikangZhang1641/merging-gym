@@ -1,5 +1,4 @@
 /build/
 /merging_gym.egg-info/
-!/scripts/*.py
-/scripts/
+/scripts/*/
 
