@@ -12,12 +12,13 @@ font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 R = 30000
 H, W = 1000, 200
-dT = 1.0
+dT = 0.2
 param = 1
-RFirst = 500
-RSecond = 300
-RCollision = -1000
-ACC = 2.0
+RFirst = 0
+RSecond = 0
+RCollision = -10
+ACC_INC = 2
+ACC_DEC = -10
 
 def lon2coord(lon, id):
     angle = np.arctan2( H, R ) - lon / R
@@ -90,9 +91,9 @@ class MergeEnv(gym.Env):
         # kinodynamic equations:
         Vexp1 = self.Vexp_action[action1]
         if self.state1['vel'] < Vexp1:
-            self.state1['acc'] = ACC 
+            self.state1['acc'] = ACC_INC
         elif self.state1['vel'] > Vexp1:
-            self.state1['acc'] = -ACC 
+            self.state1['acc'] = ACC_DEC
         else:
             self.state1['acc'] = 0 
 
@@ -101,9 +102,9 @@ class MergeEnv(gym.Env):
         
         Vexp2 = self.Vexp_action[action2]
         if self.state2['vel'] < Vexp2:
-            self.state2['acc'] = ACC
+            self.state2['acc'] = ACC_INC
         elif self.state2['vel'] > Vexp2:
-            self.state2['acc'] = -ACC
+            self.state2['acc'] = ACC_DEC
         else:
             self.state2['acc'] = 0
 
@@ -168,27 +169,24 @@ class MergeEnv(gym.Env):
         if mode == "human":
             canvas_bak = self.canvas.copy()
 
-            # x1 = H -1 - int(self.state1['pos'])
-            # y1 = W//2 + TRAJ[H -1-x1]
-            # print("x1,y1", x1, y1)
-
             x1, y1 = lon2coord(self.state1['pos'], "ego")
-            # print("x1,y1", x1, y1)
-
-            # self.canvas[x1+1-collision_bc : x1+collision_bc, y1+1-collision_bc : y1+collision_bc, :] = [0,0,1]
-            self.canvas[int(x1)+BC[:, 0], int(y1)+BC[:, 1], :] = [0,0,1]
-
-            # x2 = H -1 - int(self.state2['pos'])
-            # y2 = W//2 - TRAJ[H -1-x2]
-            # print("x2,y2", x2, y2)
+            clr = [1,1,1]
+            if self.state1['acc'] > 0:
+                clr = [0,0,1]
+            elif self.state1['acc'] < 0:
+                clr = [1,0,0]
+            self.canvas[int(x1)+BC[:, 0], int(y1)+BC[:, 1], :] = clr
 
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
-            # print("x2,y2", x2, y2)
-            # self.canvas[x2+1-collision_bc : x2+collision_bc, y2+1-collision_bc : y2+collision_bc, :] = [1,0,0]
-            self.canvas[int(x2)+BC[:, 0], int(y2)+BC[:, 1], :] = [1,0,0]
+            clr = [0,0,0]
+            if self.state2['acc'] > 0:
+                clr = [0,0,1]
+            elif self.state2['acc'] < 0:
+                clr = [1,0,0]            
+            self.canvas[int(x2)+BC[:, 0], int(y2)+BC[:, 1], :] = clr
 
             cv2.imshow("Game", self.canvas)
-            cv2.waitKey(100)
+            cv2.waitKey(50)
             self.canvas = canvas_bak
 
         elif mode == "rgb_array":

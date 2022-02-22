@@ -119,8 +119,9 @@ class DQN():
 
 
 def main():
-    dqn = DQN()
-    opponent = DQN("self")
+    dqn = DQN("self2")
+    opponent = dqn
+    # opponent = DQN("results/self")
     # opponent = DQN("L1")
     # opponent2 = DQN("L0")
     
@@ -132,6 +133,7 @@ def main():
     winner_list = []
     plt.ion()
     fig, ax = plt.subplots(4,1)
+    plt.legend()
     collision_count = 0
     win_count = 0
 
@@ -139,11 +141,13 @@ def main():
         state = env.reset()
         ep_reward = 0
         while True:
-            # env.render()
+            env.render()
+
             action = dqn.choose_action(state)
             # action_op = NUM_ACTIONS // 2
             action_op = opponent.choose_action(state[3:] + state[:3])
             # action_op = opponent.choose_action(state[3:] + state[:3]) if np.random.randint(2) == 0 else opponent2.choose_action(state[3:] + state[:3])
+            
             next_state, rewards, done, info = env.step(action, action_op)
             print("ego/op action,", action, action_op)
 
@@ -177,8 +181,11 @@ def main():
             ax[0].set_xlim(0, episodes)
             #ax.cla()
             ax[0].plot(reward_list, 'g-', label='total_loss')
+            ax[1].set_xlim(0, episodes)
             ax[1].plot(q_eval_list, 'b-', label="q_eval")
+            ax[2].set_xlim(0, episodes)
             ax[2].plot(collision_list, 'k-', label="collision_rate")
+            ax[3].set_xlim(0, episodes)
             ax[3].plot(winner_list, 'k-', label="win")
             plt.pause(0.001)
     
