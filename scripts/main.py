@@ -30,11 +30,11 @@ class Net(nn.Module):
     """docstring for Net"""
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(NUM_STATES, 20)
+        self.fc1 = nn.Linear(NUM_STATES, 200)
         self.fc1.weight.data.uniform_(0,1)
-        self.fc2 = nn.Linear(20,10)
+        self.fc2 = nn.Linear(200,100)
         self.fc2.weight.data.uniform_(0,1)
-        self.out = nn.Linear(10,NUM_ACTIONS)
+        self.out = nn.Linear(100,NUM_ACTIONS)
         self.out.weight.data.uniform_(0,1)
 
     def forward(self,x):
@@ -119,7 +119,7 @@ class DQN():
 
 
 def main():
-    dqn = DQN("self2")
+    dqn = DQN()
     opponent = dqn
     # opponent = DQN("results/self")
     # opponent = DQN("L1")
@@ -133,7 +133,14 @@ def main():
     winner_list = []
     plt.ion()
     fig, ax = plt.subplots(4,1)
-    plt.legend()
+    ax[0].set_xlim(0, episodes)
+    # ax[0].legend()
+    ax[1].set_xlim(0, episodes)            
+    # ax[1].legend()
+    ax[2].set_xlim(0, episodes)         
+    # ax[2].legend()
+    ax[3].set_xlim(0, episodes)   
+    # ax[3].legend()
     collision_count = 0
     win_count = 0
 
@@ -178,14 +185,9 @@ def main():
         q_eval_list.append(q_eval_value)
 
         if (i + 1) % 500 == 0:
-            ax[0].set_xlim(0, episodes)
-            #ax.cla()
             ax[0].plot(reward_list, 'g-', label='total_loss')
-            ax[1].set_xlim(0, episodes)
             ax[1].plot(q_eval_list, 'b-', label="q_eval")
-            ax[2].set_xlim(0, episodes)
             ax[2].plot(collision_list, 'k-', label="collision_rate")
-            ax[3].set_xlim(0, episodes)
             ax[3].plot(winner_list, 'k-', label="win")
             plt.pause(0.001)
     
