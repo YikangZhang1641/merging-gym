@@ -621,7 +621,7 @@ def plot(frame_idx, rewards, losses):
     # plt.show()
 
 def main():
-    load_path = "2022--03--03 14:42:31"
+    load_path = None
     output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
     writer = SummaryWriter(log_dir = output_path)
 

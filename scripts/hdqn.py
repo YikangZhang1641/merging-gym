@@ -218,11 +218,12 @@ class HDQN():
         self.optimizer.step()
 
 def goal_status(states):
-    ego_time = states[0] / (states[1] + 0.01)
+    dx1, dy1, dv1, x1, v1, dx2, dy2, dv2, x2, v2 = states
+    ego_time = x1 / (v1 + 0.01)
     # op_time = states[3] / (states[4] + 0.01)
-    if ego_time < (states[3] - 2.0) / (states[4] + 0.01) * 0.9:
+    if ego_time < (x2 - 2.0) / (v2 + 0.01) * 0.9:
         return 0
-    elif ego_time < (states[3] + 2.0) / (states[4] + 0.01) * 1.1:
+    elif ego_time < (x2 + 2.0) / (v2 + 0.01) * 1.1:
         return 1
     return 2
 
@@ -230,7 +231,7 @@ def goal_status(states):
 
 def main():
 
-    episodes = 10000
+    episodes = 1000
     print("Collecting Experience....")
     reward_list = []
     q_eval_list = []
@@ -245,7 +246,7 @@ def main():
     collision_count = 0
     win_count = 0
 
-    load_path = "l1_a"
+    load_path = "2022--03--08 14:08:51"
     upper = Goal_DQN(load_path)
     lower = HDQN(load_path)
 
@@ -263,7 +264,7 @@ def main():
     output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
     writer = SummaryWriter(log_dir = output_path)
 
-    for i in range(episodes):
+    for i in range(10000, 10000 + episodes):
         state = env.reset()
         next_state = state
         ep_reward = 0
@@ -271,8 +272,8 @@ def main():
         while not done:
 
             goal = upper.choose_goal(state)
-            goal_op = 1
-            # goal_op = upper_op.choose_goal(state[3:] + state[:3])
+            # goal_op = 1
+            goal_op = upper_op.choose_goal(state[NUM_STATES//2:] + state[:NUM_STATES//2])
             extrinsic_reward = 0
 
             while not done:
@@ -281,9 +282,9 @@ def main():
                 goal_state = torch.unsqueeze(torch.FloatTensor([goal] + state), dim=0)
                 action = lower.choose_action(goal_state)
 
-                # goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[3:] + state[:3]), dim=0)
-                # action_op = lower_op.choose_action(goal_state_op)
-                action_op = (NUM_ACTIONS) // 2
+                goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[NUM_STATES//2:] + state[:NUM_STATES//2]), dim=0)
+                action_op = lower_op.choose_action(goal_state_op)
+                # action_op = (NUM_ACTIONS) // 2
 
                 next_state, rewards, done, info = env.step(action, action_op)
                 goal = upper.choose_goal(next_state)
@@ -325,7 +326,7 @@ def main():
         collision_list.append(collision_rate)
         writer.add_scalar('scalar/collision_rate', collision_rate, i)
 
-        if state[0] > state[3]:
+        if state[8] > state[3]:
             win_count += 1
         win_rate = win_count / (i+1)
         winner_list.append(win_rate)

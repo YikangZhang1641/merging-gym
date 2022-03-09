@@ -2,3 +2,4 @@
 /merging_gym.egg-info/
 /scripts/*/
 /.idea
+merging_gym/envs/__pycache__/

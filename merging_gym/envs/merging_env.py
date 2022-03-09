@@ -52,9 +52,9 @@ BC = np.array(tmp)
 class MergeEnv(gym.Env):
     def __init__(self):
         super(MergeEnv, self).__init__()
-        self.observation_shape = (6) #p,v,a for 1; p,v,a for 2)
-        self.observation_space = spaces.Box(low = np.array([0, 0, -10, 0, 0, -10]), 
-                                            high = np.array([H, 100, 10, H, 100, 10]),
+        self.observation_shape = (10) #dx,dy,dv, x, v for 1; dx,dy,dv,x,v for 2)
+        self.observation_space = spaces.Box(low = np.array([-H, -W, -100, 0,    0, -H, -W, -100, 0,   0]),
+                                            high = np.array([H,  W,  100, H,  100,  H,  W,  100, H, 100]),
                                             dtype = np.float16)
 
         # Define an action space ranging from 0 to 4
@@ -75,6 +75,21 @@ class MergeEnv(gym.Env):
         
         print('MergeEnvd Environment initialized')
 
+    def observe(self):
+        x1, y1 = lon2coord(self.state1['pos'], "ego")
+        x2, y2 = lon2coord(self.state2['pos'], "opponent")
+
+        obs = [x2 - x1,
+               y2 - y1,
+               self.state2['vel'] - self.state1['vel'],
+               END_POINT - self.state1['pos'],
+               self.state1['vel'],
+               x1 - x2,
+               y1 - y2,
+               self.state1['vel'] - self.state2['vel'],
+               END_POINT - self.state2['pos'],
+               self.state2['vel']]
+        return obs
 
     def step(self, action1, action2):
         self.time_stamp += dT
@@ -92,7 +107,7 @@ class MergeEnv(gym.Env):
         # else:
         #     self.state1['acc'] = 0 
 
-        self.state1['vel'] += self.state1['acc'] * dT
+        self.state1['vel'] = max(0, self.state1['vel'] + self.state1['acc'] * dT)
         self.state1['pos'] += self.state1['vel'] * dT
         
         self.state2['acc'] = self.action_dict[action2]
@@ -104,10 +119,10 @@ class MergeEnv(gym.Env):
         # else:
         #     self.state2['acc'] = 0
 
-        self.state2['vel'] += self.state2['acc'] * dT
+        self.state2['vel'] = max(0, self.state2['vel'] + self.state2['acc'] * dT)
         self.state2['pos'] += self.state2['vel'] * dT
 
-        obs = [END_POINT - self.state1['pos'], self.state1['vel'], self.state1['acc'], END_POINT - self.state2['pos'], self.state2['vel'], self.state2['acc']]
+        obs = self.observe()
 
         reward1 = -param * (self.state1['vel'] - 20.0) * (self.state1['vel'] - 20.0)
         reward2 = -param * (self.state2['vel'] - 20.0) * (self.state2['vel'] - 20.0)
@@ -153,7 +168,7 @@ class MergeEnv(gym.Env):
         
         
         # print('MergeEnv Environment reset')
-        states = [self.state1['pos'], self.state1['vel'], self.state1['acc'], self.state2['pos'], self.state2['vel'], self.state2['acc']]
+        states = self.observe()
         # print("states:", states)
 
         return states
