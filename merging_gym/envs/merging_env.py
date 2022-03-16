@@ -7,6 +7,8 @@ import cv2
 import matplotlib.pyplot as plt
 import PIL.Image as Image
 import random
+import pygame
+from pygame.locals import *
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -56,13 +58,14 @@ class MergeEnv(gym.Env):
         self.observation_space = spaces.Box(low = np.array([-H, -W, -100, 0,    0, -H, -W, -100, 0,   0]),
                                             high = np.array([H,  W,  100, H,  100,  H,  W,  100, H, 100]),
                                             dtype = np.float16)
+        pygame.init()
+        self.screen = pygame.display.set_mode((H, W))
+        pygame.display.set_caption('Python numbers')
+        self.screen.fill((159, 182, 205))
+        font = pygame.font.Font(None, 17)
 
-        # Define an action space ranging from 0 to 4
         self.action_space = spaces.Discrete(3,)
-        # self.action_dict = {0: ACC_DEC, 1:ACC_DEC/2, 2:0, 3:ACC_INC/2, 4:ACC_INC}
         self.action_dict = {0: ACC_DEC, 1:0, 2:ACC_INC}
-        # self.Vexp_action = {0: 0, 1: 10, 2: 20, 3:30, 4:40}
-        # self.Vexp_action = {0: 20, 1: 40, 2: 60}
 
         # Create a canvas to render the environment images upon 
         self.canvas = np.ones((H, W, 3)) * 1
