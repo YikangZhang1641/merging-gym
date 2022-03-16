@@ -59,10 +59,11 @@ class MergeEnv(gym.Env):
                                             high = np.array([H,  W,  100, H,  100,  H,  W,  100, H, 100]),
                                             dtype = np.float16)
         pygame.init()
-        self.screen = pygame.display.set_mode((H, W))
+        self.screen = pygame.display.set_mode((W, H))
         pygame.display.set_caption('Python numbers')
-        self.screen.fill((159, 182, 205))
-        font = pygame.font.Font(None, 17)
+        self.screen.fill((0, 230, 230))
+        # font = pygame.font.Font(None, 17)
+        pygame.display.flip()
 
         self.action_space = spaces.Discrete(3,)
         self.action_dict = {0: ACC_DEC, 1:0, 2:ACC_INC}
@@ -186,17 +187,17 @@ class MergeEnv(gym.Env):
             x1, y1 = lon2coord(self.state1['pos'], "ego")
             clr = [0,0,0]
             if self.state1['acc'] > 0:
-                clr = [0,0,1]
+                clr = [1, 0, 0]
             elif self.state1['acc'] < 0:
-                clr = [1,0,0]
+                clr = [0, 0, 1]
             self.canvas[int(x1)+BC[:, 0], int(y1)+BC[:, 1], :] = clr
 
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
             clr = [0,0,0]
             if self.state2['acc'] > 0:
-                clr = [0,0,1]
+                clr = [1, 0, 0]
             elif self.state2['acc'] < 0:
-                clr = [1,0,0]
+                clr = [0, 0, 1]
             self.canvas[int(x2)+BC[:, 0], int(y2)+BC[:, 1], :] = clr
 
             if goal is not None:
@@ -215,8 +216,12 @@ class MergeEnv(gym.Env):
                 else:
                     self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
 
-            cv2.imshow("Game", self.canvas)
-            cv2.waitKey(50)
+            # cv2.imshow("Game", self.canvas)
+            image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
+            self.screen.blit(image, (0,0))
+            pygame.time.wait(50)
+            pygame.display.update()
+
 
         elif mode == "rgb_array":
             return self.canvas
