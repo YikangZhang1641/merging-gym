@@ -41,7 +41,7 @@ def op_state(state):
 
 
 
-OP_MODEL = "dqn"# 定义用的对手车模型
+OP_MODEL = "pvp"# 定义用的对手车模型
 
 
 def main():
@@ -65,10 +65,13 @@ def main():
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
+        print("using model: hdqn")
     elif OP_MODEL == "dqn":
         load_path = None
         dqn = DQN(load_path)
-
+        print("using model: dqn")
+    else:
+        print("using model: pvp")
 
     for i in range(episodes):
         state = env.reset()
@@ -79,31 +82,41 @@ def main():
         while not done:
             env.render()
 
+            action = 1
+            key_pressed = pygame.key.get_pressed()
+            # print(sum(key_pressed))
+
+            ########### ego command ###########
+            if key_pressed[pygame.K_UP]:
+                action = 2
+                print("ego UP")
+
+            elif key_pressed[pygame.K_DOWN]:
+                action = 0
+                print("ego Down")
+            ###################################
+
+            ########## opponent command ###########
             if OP_MODEL == "hdqn":
-                ########## hdqn ############
                 if goal_op is None or goal_op == goal_status( op_state(state) ):
                     goal_op = upper_op.choose_goal( op_state(state) )
 
                 goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + op_state(state)), dim=0)
                 action_op = lower_op.choose_action(goal_state_op)
-                ############################
 
             elif OP_MODEL == "dqn":
-                ########## dqn #############
                 action_op = dqn.choose_action(state)
-                ############################
 
-            action = 1
-            key_pressed = pygame.key.get_pressed()
-            print(sum(key_pressed))
+            else:
+                action_op = 1
+                if key_pressed[pygame.K_w]:
+                    action_op = 2
+                    print("opponent UP")
 
-            if key_pressed[pygame.K_UP]:
-                action = 2
-                print("UP")
-
-            elif key_pressed[pygame.K_DOWN]:
-                action = 0
-                print("Down")
+                elif key_pressed[pygame.K_s]:
+                    action_op = 0
+                    print("opponent Down")
+            ###################################
 
             pygame.event.pump()
             next_state, rewards, done, info = env.step(action, action_op)

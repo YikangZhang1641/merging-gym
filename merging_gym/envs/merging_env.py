@@ -165,10 +165,14 @@ class MergeEnv(gym.Env):
         self.done = False
         self.winner = None
         self.time_stamp = 0
-        # self.state1 = {'pos': START_POINT + int(np.random.rand() * start_diff), 'vel': 20.0 + np.random.random_integers(10), 'acc': 0.0}
-        # self.state2 = {'pos': START_POINT + int(np.random.rand() * start_diff), 'vel': 20.0 + np.random.random_integers(10), 'acc': 0.0}
-        self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
-        self.state2 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
+
+        # 起始条件相同
+        self.state1 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
+        self.state2 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
+
+        # 起始条件随机
+        # self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
+        # self.state2 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
         
         
         # print('MergeEnv Environment reset')
