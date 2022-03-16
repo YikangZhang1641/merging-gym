@@ -496,7 +496,7 @@ class NoisyLinear(nn.Module):
         return x
 
 class RainbowDQN(nn.Module):
-    def __init__(self, num_inputs, num_actions, num_atoms, Vmin, Vmax):
+    def __init__(self, num_inputs, num_actions, num_atoms=51, Vmin=-10, Vmax=10):
         super(RainbowDQN, self).__init__()
 
         self.num_inputs = num_inputs

@@ -34,31 +34,20 @@ ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_sp
 
 from hdqn import HDQN, Goal_DQN, goal_status
 from main import DQN
-
+from ranbowdqn import RainbowDQN
 
 def op_state(state):
     return state[NUM_STATES // 2:] + state[:NUM_STATES // 2]
 
 
 
-OP_MODEL = "pvp"# 定义用的对手车模型
+OP_MODEL = "hdqn"# 定义用的对手车模型
 
 
 def main():
     episodes = 10
-    print("Collecting Experience....")
-    reward_list = []
-    q_eval_list = []
-    collision_list = []
-    winner_list = []
-    # plt.ion()
-    fig, ax = plt.subplots(4, 1)
-    ax[0].set_xlim(0, episodes)
-    ax[1].set_xlim(0, episodes)
-    ax[2].set_xlim(0, episodes)
-    ax[3].set_xlim(0, episodes)
+
     collision_count = 0
-    win_count = 0
 
     if OP_MODEL == "hdqn":
         load_path = "2022--03--08 14:08:51"
@@ -66,10 +55,17 @@ def main():
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
         print("using model: hdqn")
+
     elif OP_MODEL == "dqn":
-        load_path = None
+        load_path = "l1"
         dqn = DQN(load_path)
         print("using model: dqn")
+
+    elif OP_MODEL == "rainbow_dqn":
+        current_model = RainbowDQN(env.observation_space.shape[0], env.action_space.n, num_atoms, Vmin, Vmax)
+        if load_path is not None:
+            current_model.load_state_dict(torch.load(os.path.join(load_path, "eval.pth")))
+
     else:
         print("using model: pvp")
 
@@ -94,7 +90,6 @@ def main():
             elif key_pressed[pygame.K_DOWN]:
                 action = 0
                 print("ego Down")
-            ###################################
 
             ########## opponent command ###########
             if OP_MODEL == "hdqn":
@@ -106,6 +101,9 @@ def main():
 
             elif OP_MODEL == "dqn":
                 action_op = dqn.choose_action(state)
+
+            elif OP_MODEL == "rainbow_dqn":
+                action_op = current_model.act(state[3:] + state[:3])
 
             else:
                 action_op = 1
