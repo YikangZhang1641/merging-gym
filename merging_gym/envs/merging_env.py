@@ -9,6 +9,10 @@ import PIL.Image as Image
 import random
 import pygame
 from pygame.locals import *
+import pygame.math as pygame_math
+from shapely.geometry import box
+from shapely.geometry import Polygon
+import math
 
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
 
@@ -38,15 +42,18 @@ TRAJ = np.array([int( R - np.sqrt(R*R - (H - x) * (H - x) )) for x in range(H)])
 START_POINT = 50
 END_POINT = H - 50
 
+VEHICLE_W, VEHICLE_H = 4, 8
+
+
 collision_bc = 8
 tmp = []
 for i in range(collision_bc):
-    for j in range(collision_bc):
-        if i**2 + j**2 < collision_bc**2:
-            tmp.append([i,j])
-            tmp.append([-i,j])
-            tmp.append([i,-j])
-            tmp.append([-i,-j])
+    for j in range(collision_bc // 2):
+        # if i**2 + j**2 < collision_bc**2:
+        tmp.append([i,j])
+        tmp.append([-i,j])
+        tmp.append([i,-j])
+        tmp.append([-i,-j])
 BC = np.array(tmp)
 
 
@@ -61,17 +68,20 @@ class MergeEnv(gym.Env):
         pygame.init()
         self.screen = pygame.display.set_mode((W, H))
         pygame.display.set_caption('Python numbers')
-        self.screen.fill((0, 230, 230))
+        self.screen.fill((255, 255, 255))
         # font = pygame.font.Font(None, 17)
         pygame.display.flip()
+
+        self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
+        self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
 
         self.action_space = spaces.Discrete(3,)
         self.action_dict = {0: ACC_DEC, 1:0, 2:ACC_INC}
 
         # Create a canvas to render the environment images upon 
         self.canvas = np.ones((H, W, 3)) * 1
-        self.canvas[[H-1-i for i in range(H)], W // 2 + TRAJ, :] = 0
-        self.canvas[[H-1-i for i in range(H)], W // 2 - TRAJ, :] = 0
+        # self.canvas[[H-1-i for i in range(H)], W // 2 + TRAJ, :] = 0
+        # self.canvas[[H-1-i for i in range(H)], W // 2 - TRAJ, :] = 0
         self.canvas_bak = self.canvas.copy()
 
         self.time_stamp = 0
@@ -144,7 +154,7 @@ class MergeEnv(gym.Env):
             reward1 += RSecond
 
         
-        if self.vehicle_distance() <= 2 * collision_bc or self.state1['pos'] < START_POINT or self.state2['pos'] < START_POINT:
+        if self.is_collided() or self.state1['pos'] < START_POINT or self.state2['pos'] < START_POINT:
             self.done = True
             reward1 += RCollision
             reward2 += RCollision
@@ -155,10 +165,16 @@ class MergeEnv(gym.Env):
         # print('MergeEnv Step successful!')
         return obs, rewards, self.done, info
 
-    def vehicle_distance(self):
+
+    def is_collided(self):
         x1, y1 = lon2coord(self.state1['pos'], "ego")
         x2, y2 = lon2coord(self.state2['pos'], "opponent")
-        return np.sqrt((x1-x2)**2 + (y1-y2)**2)
+        p1 = Polygon([(p.x, p.y) for p in self.corners(self.ego, x1, y1, 0)])
+        p2 = Polygon([(p.x, p.y) for p in self.corners(self.opponent, x2, y2, 0)])
+        if p1.intersects(p2):
+            print("collided!")
+            return True
+        return False
 
     def reset(self):
         start_diff = 50.0
@@ -181,28 +197,46 @@ class MergeEnv(gym.Env):
 
         return states
 
+    def corners(self, agent, y, x, yaw):
+        rect = agent.get_rect(center=(x, y))
+        pivot = pygame_math.Vector2(x, y)
+        p0 = (pygame.math.Vector2(rect.topleft) - pivot).rotate(-yaw) + pivot
+        p1 = (pygame.math.Vector2(rect.topright) - pivot).rotate(-yaw) + pivot
+        p2 = (pygame.math.Vector2(rect.bottomright) - pivot).rotate(-yaw) + pivot
+        p3 = (pygame.math.Vector2(rect.bottomleft) - pivot).rotate(-yaw) + pivot
+        return p0, p1, p2, p3
+
     def render(self, goal = None, goal_op = None):
         mode = "human"
         assert mode in ["human", "rgb_array"], "Invalid mode, must be either \"human\" or \"rgb_array\""
         if mode == "human":
             # canvas_bak = self.canvas.copy()
-            self.canvas = self.canvas_bak.copy()
+            # self.canvas = self.canvas_bak.copy()
+            image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
+            self.screen.blit(image, (0,0))
+
+            pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 - R, 0), radius=R - VEHICLE_W, width=1)
+            pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 - R, 0), radius=R + VEHICLE_W, width=1)
+            pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 + R, 0), radius=R - VEHICLE_W, width=1)
+            pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 + R, 0), radius=R + VEHICLE_W, width=1)
+
 
             x1, y1 = lon2coord(self.state1['pos'], "ego")
             clr = [0,0,0]
             if self.state1['acc'] > 0:
-                clr = [1, 0, 0]
+                clr = [255, 0, 0]
             elif self.state1['acc'] < 0:
-                clr = [0, 0, 1]
-            self.canvas[int(x1)+BC[:, 0], int(y1)+BC[:, 1], :] = clr
+                clr = [0, 0, 255]
+            pygame.draw.lines(self.screen, clr, True, self.corners(self.ego, x1, y1, 0), 3)
+
 
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
             clr = [0,0,0]
             if self.state2['acc'] > 0:
-                clr = [1, 0, 0]
+                clr = [255, 0, 0]
             elif self.state2['acc'] < 0:
-                clr = [0, 0, 1]
-            self.canvas[int(x2)+BC[:, 0], int(y2)+BC[:, 1], :] = clr
+                clr = [0, 0, 255]
+            pygame.draw.lines(self.screen, clr, True, self.corners(self.opponent, x2, y2, 0), 3)
 
             if goal is not None:
                 if goal == 0:
@@ -220,9 +254,7 @@ class MergeEnv(gym.Env):
                 else:
                     self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
 
-            # cv2.imshow("Game", self.canvas)
-            image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
-            self.screen.blit(image, (0,0))
+
             pygame.time.wait(50)
             pygame.display.update()
 

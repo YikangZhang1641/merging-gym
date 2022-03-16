@@ -3,3 +3,4 @@
 /scripts/*/
 /.idea
 merging_gym/envs/__pycache__/
+merging_gym/__pycache__/
