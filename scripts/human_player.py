@@ -45,7 +45,7 @@ OP_MODEL = "pvp"# 定义用的对手车模型
 
 
 def main():
-    episodes = 10
+    episodes = 100
 
     collision_count = 0
 
@@ -69,13 +69,14 @@ def main():
     else:
         print("using model: pvp")
 
-    action = 1
-    action_op = 1
+
     for i in range(episodes):
         state = env.reset()
         next_state = state
         ep_reward = 0
         done = False
+        action = 2
+        action_op = 2
 
         while not done:
             env.render()
@@ -86,8 +87,8 @@ def main():
             ########### ego command ###########
             if key_pressed[pygame.K_UP]:
                 action += 1
-                if action > 2:
-                    action = 2
+                if action > NUM_ACTIONS - 1:
+                    action = NUM_ACTIONS - 1
                 print("ego UP")
 
             elif key_pressed[pygame.K_DOWN]:
@@ -113,8 +114,8 @@ def main():
             else:
                 if key_pressed[pygame.K_w]:
                     action_op += 1
-                    if action_op > 2:
-                        action_op = 2
+                    if action_op > NUM_ACTIONS - 1:
+                        action_op = NUM_ACTIONS - 1
                     print("opponent UP")
 
                 elif key_pressed[pygame.K_s]:

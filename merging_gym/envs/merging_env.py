@@ -20,8 +20,8 @@ from helper import mpc_1d
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 R = 30000
-H, W = 1000, 200
-WINDOW_H, WINDOW_W = 600, 200
+H, W = 1000, 300
+WINDOW_H, WINDOW_W = 1000, 300
 dT = 0.2
 param = 0.0001
 
@@ -31,7 +31,7 @@ RSecond = 1.0
 RCollision = -10
 
 # 车道线绝对坐标
-TRAJ = np.array([int( R - np.sqrt(R*R - (H - x) * (H - x) )) for x in range(H)])
+TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
 START_POINT = 50
 END_POINT = H - 50
 
@@ -39,10 +39,10 @@ END_POINT = H - 50
 VEHICLE_W, VEHICLE_H = 4, 8
 
 # mpc预测时域
-prediction_t = 2.0
+prediction_t = 3.0
 
 # 可视化缩放比例
-scale = 2.0
+scale = 5.0
 
 def lon2coord(lon, id):
     angle = np.arctan2( H, R ) - lon / R
@@ -93,8 +93,8 @@ class MergeEnv(gym.Env):
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
 
-        # action_dict设计，未来t秒后经过的delta x
-        self.action_dict = {0: 0, 1:20, 2:40}
+        # action_dict设计，未来t秒后经过的delta v
+        self.action_dict = {0: 0, 1:10, 2:20, 3:30, 4:40}
         self.action_space = spaces.Discrete(len(self.action_dict.items()),)
         self.action1 = 1
         self.action2 = 1
@@ -137,12 +137,12 @@ class MergeEnv(gym.Env):
         info = {"collision": False}
 
         # kinodynamic equations:
-        self.state1['acc'] = self.action_to_acc(x0=self.state1['pos'], v0=self.state1['vel'], xt=self.state1['pos'] + self.action_dict[action1], vt=self.state1['vel'], t=1)
+        self.state1['acc'] = self.action_to_acc(x0=self.state1['pos'], v0=self.state1['vel'], xt=self.state1['pos'] + self.action_dict[action1] * prediction_t, vt=self.action_dict[action1], t=prediction_t)
 
         self.state1['vel'] = max(0, self.state1['vel'] + self.state1['acc'] * dT)
         self.state1['pos'] += self.state1['vel'] * dT
         
-        self.state2['acc'] = self.action_to_acc(x0=self.state2['pos'], v0=self.state2['vel'], xt=self.state2['pos'] + self.action_dict[action2], vt=self.state2['vel'], t=1)
+        self.state2['acc'] = self.action_to_acc(x0=self.state2['pos'], v0=self.state2['vel'], xt=self.state2['pos'] + self.action_dict[action2] * prediction_t, vt=self.action_dict[action2], t=prediction_t)
 
         self.state2['vel'] = max(0, self.state2['vel'] + self.state2['acc'] * dT)
         self.state2['pos'] += self.state2['vel'] * dT
@@ -226,21 +226,21 @@ class MergeEnv(gym.Env):
             image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
             x1, y1 = lon2coord(self.state1['pos'], "ego")
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
-            x1_t, y1_t = lon2coord(self.state1['pos'] + self.action_dict[self.action1] * prediction_t, "ego")
-            x2_t, y2_t = lon2coord(self.state2['pos'] + self.action_dict[self.action2] * prediction_t, "opponent")
+            x1_t, y1_t = lon2coord(self.state1['pos'] + self.state1['vel'] * prediction_t, "ego")
+            x2_t, y2_t = lon2coord(self.state2['pos'] + self.state2['vel'] * prediction_t, "opponent")
 
             self.left_screen.blit(image, (0,0))
             self.right_screen.blit(image, (0,0))
 
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.left_screen, color=(100,100,  0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
+            pygame.draw.circle(self.left_screen, color=(100,100,  0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
+            pygame.draw.circle(self.left_screen, color=(255,255,255), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
+            pygame.draw.circle(self.left_screen, color=(255,255,255), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
 
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.right_screen, color=(100,100,  0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
+            pygame.draw.circle(self.right_screen, color=(100,100,  0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
+            pygame.draw.circle(self.right_screen, color=(255,255,255), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
+            pygame.draw.circle(self.right_screen, color=(255,255,255), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
 
 
             clr1 = [0,0,0]
@@ -250,9 +250,9 @@ class MergeEnv(gym.Env):
                 clr1 = [0, 0, 255]
             print(self.state1['acc'])
 
-            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + WINDOW_H/2, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, [100,100,100], self.corners(self.ego, scale*(x1_t-x1)+WINDOW_H/2, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, WINDOW_H/2, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
-            pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + WINDOW_H / 2, y1 - y1 + WINDOW_W / 2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+            pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
 
             clr2 = [0,0,0]
@@ -262,9 +262,9 @@ class MergeEnv(gym.Env):
                 clr2 = [0, 0, 255]
             print(self.state2['acc'])
 
-            pygame.draw.polygon(self.left_screen, [100,100,100], self.corners(self.opponent, scale * (x2_t - x2) + WINDOW_H/2, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, WINDOW_H/2, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
-            pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + WINDOW_H/2, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, clr2, self.corners(self.opponent, scale * (x2 - x1) + WINDOW_H/2, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+            pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + 3*WINDOW_H/5, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.right_screen, clr2, self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
 
 
@@ -286,7 +286,7 @@ class MergeEnv(gym.Env):
 
 
             self.screen.blit(self.left_screen, (0,0))
-            self.screen.blit(self.right_screen, (2*W,0))
+            self.screen.blit(self.right_screen, (2*WINDOW_W,0))
             pygame.draw.lines(self.screen, (0,0,0), True, [(WINDOW_W, 0), (WINDOW_W, WINDOW_H)], 3)
 
             pygame.time.wait(50)

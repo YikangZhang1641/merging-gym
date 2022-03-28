@@ -170,7 +170,7 @@ class mpc_1d:
             tmp = np.matmul(a, tmp)
 
         B = (np.array([[xt], [vt]]) - np.matmul(tmp, np.array([[x0], [v0]])))
-        B = B[0].reshape(1,)
+        B = B[1].reshape(1,)
 
         p = np.zeros([self.T_len - 1, self.T_len])
         for i in range(self.T_len - 1):
@@ -179,7 +179,7 @@ class mpc_1d:
         P = np.matmul(p.T, p) + np.eye(self.T_len) * 0.01
         q = np.zeros([self.T_len, 1]).reshape(self.T_len,)
 
-        self.u = solve_qp(P=P, q=q, A=A[0,:], b=B)
+        self.u = solve_qp(P=P, q=q, A=A[1,:], b=B)
         # print("A", A)
         # print("B", B)
         # print("P", P)
