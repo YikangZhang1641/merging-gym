@@ -45,6 +45,32 @@ class Net(nn.Module):
         action_prob = self.out(x)
         return action_prob
 
+class DRQN(nn.Module):
+    def __init__(self, N_action):
+        super(DRQN, self).__init__()
+        self.lstm_i_dim = 16    # input dimension of LSTM
+        self.lstm_h_dim = 16     # output dimension of LSTM
+        self.lstm_N_layer = 1   # number of layers of LSTM
+        self.N_action = N_action
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1)
+        self.flat1 = Flatten()
+        self.lstm = nn.LSTM(input_size=self.lstm_i_dim, hidden_size=self.lstm_h_dim, num_layers=self.lstm_N_layer)
+
+        self.fc1 = nn.Linear(NUM_STATES, 200)
+        self.fc1.weight.data.uniform_(0,1)
+        self.fc2 = nn.Linear(200, self.lstm_i_dim)
+        self.fc2.weight.data.uniform_(0,1)
+
+        self.fc3 = nn.Linear(self.lstm_h_dim, 16)
+        self.fc4 = nn.Linear(16, self.N_action)
+
+    def forward(self, x, hidden):
+        h1 = F.relu(self.fc1(x))
+        h2 = self.fc2(h1)
+        h3, new_hidden = self.lstm(h2, hidden)
+        h4 = F.relu(self.fc3(h3))
+        h5 = self.fc4(h4)
+        return h5, new_hidden
 
 class DQN():
     """docstring for DQN"""
@@ -151,10 +177,8 @@ def main():
             env.render()
 
             action = dqn.choose_action(state)
-            # action_op = NUM_ACTIONS // 2
             action_op = opponent.choose_action(state[3:] + state[:3])
-            # action_op = opponent.choose_action(state[3:] + state[:3]) if np.random.randint(2) == 0 else opponent2.choose_action(state[3:] + state[:3])
-            
+
             next_state, rewards, done, info = env.step(action, action_op)
             print("ego/op action,", action, action_op)
 

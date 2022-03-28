@@ -13,8 +13,11 @@ import pygame.math as pygame_math
 from shapely.geometry import box
 from shapely.geometry import Polygon
 import math
+from helper import mpc_1d
 
-font = cv2.FONT_HERSHEY_COMPLEX_SMALL 
+# 应该要由当前观测S获得op未来规划的belief， 其中基于op预测的belief是由数据得来
+
+font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 R = 30000
 H, W = 1000, 200
@@ -75,10 +78,13 @@ class MergeEnv(gym.Env):
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
 
-        self.action_space = spaces.Discrete(3,)
-        self.action_dict = {0: ACC_DEC, 1:0, 2:ACC_INC}
+        # self.action_dict = {0: ACC_DEC, 1:0, 2:ACC_INC}
+        self.action_dict = {0: 0, 1:10, 2:20, 3:30, 4:40}
+        self.action_space = spaces.Discrete(len(self.action_dict.items()),)
+        self.action1 = 1
+        self.action2 = 1
 
-        # Create a canvas to render the environment images upon 
+        # Create a canvas to render the environment images upon
         self.canvas = np.ones((H, W, 3)) * 1
         # self.canvas[[H-1-i for i in range(H)], W // 2 + TRAJ, :] = 0
         # self.canvas[[H-1-i for i in range(H)], W // 2 - TRAJ, :] = 0
@@ -105,33 +111,27 @@ class MergeEnv(gym.Env):
                self.state2['vel']]
         return obs
 
+    def action_to_acc(self, x0, v0, xt, vt, t):
+        res = mpc_1d(x0, v0, xt, vt, t)
+        return res.action()
+
     def step(self, action1, action2):
+        self.action1, self.action2 = action1, action2
+
         self.time_stamp += dT
         if self.time_stamp > 300:
             self.done = True
         info = {"collision": False}
 
         # kinodynamic equations:
-        self.state1['acc'] = self.action_dict[action1]
-        # Vexp1 = self.Vexp_action[action1]
-        # if self.state1['vel'] < Vexp1:
-        #     self.state1['acc'] = ACC_INC
-        # elif self.state1['vel'] > Vexp1:
-        #     self.state1['acc'] = ACC_DEC
-        # else:
-        #     self.state1['acc'] = 0 
+        # self.state1['acc'] = self.action_dict[action1]
+        self.state1['acc'] = self.action_to_acc(x0=self.state1['pos'], v0=self.state1['vel'], xt=self.state1['pos'] + self.action_dict[action1], vt=self.state1['vel'], t=1)
 
         self.state1['vel'] = max(0, self.state1['vel'] + self.state1['acc'] * dT)
         self.state1['pos'] += self.state1['vel'] * dT
         
-        self.state2['acc'] = self.action_dict[action2]
-        # Vexp2 = self.Vexp_action[action2]
-        # if self.state2['vel'] < Vexp2:
-        #     self.state2['acc'] = ACC_INC
-        # elif self.state2['vel'] > Vexp2:
-        #     self.state2['acc'] = ACC_DEC
-        # else:
-        #     self.state2['acc'] = 0
+        # self.state2['acc'] = self.action_dict[action2]
+        self.state2['acc'] = self.action_to_acc(x0=self.state2['pos'], v0=self.state2['vel'], xt=self.state2['pos'] + self.action_dict[action2], vt=self.state2['vel'], t=1)
 
         self.state2['vel'] = max(0, self.state2['vel'] + self.state2['acc'] * dT)
         self.state2['pos'] += self.state2['vel'] * dT
@@ -213,7 +213,10 @@ class MergeEnv(gym.Env):
             # canvas_bak = self.canvas.copy()
             # self.canvas = self.canvas_bak.copy()
             image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
+            x1, y1 = lon2coord(self.state1['pos'], "ego")
+            # self.screen.blit(image.subsurface(pygame.Rect(50, 50, 150, 150)), (0,0))
             self.screen.blit(image, (0,0))
+            # windowSurface.blit(bgSurface, (0, 0), frameRect)
 
             pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 - R, 0), radius=R - VEHICLE_W, width=1)
             pygame.draw.circle(self.screen, color=(0,0,0), center=(W/2 - R, 0), radius=R + VEHICLE_W, width=1)
@@ -229,6 +232,9 @@ class MergeEnv(gym.Env):
                 clr = [0, 0, 255]
             pygame.draw.lines(self.screen, clr, True, self.corners(self.ego, x1, y1, 0), 3)
 
+            x1_t, y1_t = lon2coord(self.state1['pos'] + self.action_dict[self.action1], "ego")
+            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.ego, x1_t, y1_t, 0), 3)
+
 
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
             clr = [0,0,0]
@@ -237,6 +243,11 @@ class MergeEnv(gym.Env):
             elif self.state2['acc'] < 0:
                 clr = [0, 0, 255]
             pygame.draw.lines(self.screen, clr, True, self.corners(self.opponent, x2, y2, 0), 3)
+
+            x2_t, y2_t = lon2coord(self.state2['pos'] + self.action_dict[self.action2], "opponent")
+            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.opponent, x2_t, y2_t, 0), 3)
+
+
 
             if goal is not None:
                 if goal == 0:
