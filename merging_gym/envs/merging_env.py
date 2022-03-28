@@ -21,7 +21,7 @@ font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 R = 30000
 H, W = 1000, 200
-WINDOW_H, WINDOW_W = 400, 200
+WINDOW_H, WINDOW_W = 600, 200
 dT = 0.2
 param = 0.0001
 
@@ -37,6 +37,9 @@ END_POINT = H - 50
 
 # 车辆碰撞体积
 VEHICLE_W, VEHICLE_H = 4, 8
+
+# mpc预测时域
+prediction_t = 1.0
 
 # 可视化缩放比例
 scale = 2.0
@@ -74,7 +77,7 @@ class MergeEnv(gym.Env):
                                             high = np.array([H,  W,  100, H,  100,  H,  W,  100, H, 100]),
                                             dtype = np.float16)
         pygame.init()
-        self.screen = pygame.display.set_mode((2*WINDOW_W, WINDOW_H))
+        self.screen = pygame.display.set_mode((3*WINDOW_W, WINDOW_H))
 
         self.left_screen = pygame.Surface((WINDOW_W, WINDOW_H))
         self.left_screen.fill((255, 255, 255))
@@ -86,7 +89,6 @@ class MergeEnv(gym.Env):
         # self.screen.fill((255, 255, 255))
 
         # font = pygame.font.Font(None, 17)
-        pygame.display.flip()
 
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
@@ -99,8 +101,6 @@ class MergeEnv(gym.Env):
 
         # Create a canvas to render the environment images upon
         self.canvas = np.ones((H, W, 3)) * 1
-        # self.canvas[[H-1-i for i in range(H)], W // 2 + TRAJ, :] = 0
-        # self.canvas[[H-1-i for i in range(H)], W // 2 - TRAJ, :] = 0
         self.canvas_bak = self.canvas.copy()
 
         self.time_stamp = 0
@@ -226,8 +226,8 @@ class MergeEnv(gym.Env):
             image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
             x1, y1 = lon2coord(self.state1['pos'], "ego")
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
-            x1_t, y1_t = lon2coord(self.state1['pos'] + self.action_dict[self.action1], "ego")
-            x2_t, y2_t = lon2coord(self.state2['pos'] + self.action_dict[self.action2], "opponent")
+            x1_t, y1_t = lon2coord(self.state1['pos'] + self.action_dict[self.action1] * prediction_t, "ego")
+            x2_t, y2_t = lon2coord(self.state2['pos'] + self.action_dict[self.action2] * prediction_t, "opponent")
 
             self.left_screen.blit(image, (0,0))
             self.right_screen.blit(image, (0,0))
@@ -250,8 +250,8 @@ class MergeEnv(gym.Env):
                 clr1 = [0, 0, 255]
             print(self.state1['acc'])
 
-            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + WINDOW_H / 2, scale * (y1 - y2) + WINDOW_W / 2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, [100,100,100], self.corners(self.ego, scale*(x1_t-x1)+WINDOW_H/2, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, WINDOW_H / 2, WINDOW_W / 2, yaw=0, scale=scale)[2:], width=0)
+            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + WINDOW_H/2, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.right_screen, [100,100,100], self.corners(self.ego, scale*(x1_t-x1)+WINDOW_H/2, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, WINDOW_H/2, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
             pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + WINDOW_H / 2, y1 - y1 + WINDOW_W / 2, yaw=0, scale=scale), width=0)
 
 
@@ -262,7 +262,7 @@ class MergeEnv(gym.Env):
                 clr2 = [0, 0, 255]
             print(self.state2['acc'])
 
-            pygame.draw.polygon(self.left_screen, [100,100,100], self.corners(self.opponent, scale * (x2_t - x2) + WINDOW_H / 2, scale * (y2_t - y2) + WINDOW_W / 2, 0, scale=scale)[:2] + self.corners(self.opponent, scale * (x2 - x2) + WINDOW_H/2, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+            pygame.draw.polygon(self.left_screen, [100,100,100], self.corners(self.opponent, scale * (x2_t - x2) + WINDOW_H/2, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, WINDOW_H/2, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
             pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + WINDOW_H/2, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
             pygame.draw.polygon(self.right_screen, clr2, self.corners(self.opponent, scale * (x2 - x1) + WINDOW_H/2, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
@@ -286,7 +286,7 @@ class MergeEnv(gym.Env):
 
 
             self.screen.blit(self.left_screen, (0,0))
-            self.screen.blit(self.right_screen, (W,0))
+            self.screen.blit(self.right_screen, (2*W,0))
             pygame.draw.lines(self.screen, (0,0,0), True, [(WINDOW_W, 0), (WINDOW_W, WINDOW_H)], 3)
 
             pygame.time.wait(50)

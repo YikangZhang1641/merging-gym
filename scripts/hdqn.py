@@ -246,7 +246,7 @@ def main():
     collision_count = 0
     win_count = 0
 
-    load_path = "2022--03--08 14:08:51"
+    load_path = None
     upper = Goal_DQN(load_path)
     lower = HDQN(load_path)
 
@@ -264,7 +264,7 @@ def main():
     output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
     writer = SummaryWriter(log_dir = output_path)
 
-    for i in range(10000, 10000 + episodes):
+    for i in range(episodes):
         state = env.reset()
         next_state = state
         ep_reward = 0
