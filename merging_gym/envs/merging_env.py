@@ -230,10 +230,10 @@ class MergeEnv(gym.Env):
                 clr = [255, 0, 0]
             elif self.state1['acc'] < 0:
                 clr = [0, 0, 255]
-            pygame.draw.lines(self.screen, clr, True, self.corners(self.ego, x1, y1, 0), 3)
 
             x1_t, y1_t = lon2coord(self.state1['pos'] + self.action_dict[self.action1], "ego")
-            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.ego, x1_t, y1_t, 0), 3)
+            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.ego, x1_t, y1_t, 0)[:2] + self.corners(self.ego, x1, y1, 0)[2:], 3)
+            pygame.draw.lines(self.screen, clr, True, self.corners(self.ego, x1, y1, 0), 3)
 
 
             x2, y2 = lon2coord(self.state2['pos'], "opponent")
@@ -242,10 +242,10 @@ class MergeEnv(gym.Env):
                 clr = [255, 0, 0]
             elif self.state2['acc'] < 0:
                 clr = [0, 0, 255]
-            pygame.draw.lines(self.screen, clr, True, self.corners(self.opponent, x2, y2, 0), 3)
 
             x2_t, y2_t = lon2coord(self.state2['pos'] + self.action_dict[self.action2], "opponent")
-            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.opponent, x2_t, y2_t, 0), 3)
+            pygame.draw.lines(self.screen, [100,100,100], True, self.corners(self.opponent, x2_t, y2_t, 0)[:2] + self.corners(self.opponent, x2, y2, 0)[2:], 3)
+            pygame.draw.lines(self.screen, clr, True, self.corners(self.opponent, x2, y2, 0), 3)
 
 
 

@@ -41,7 +41,7 @@ def op_state(state):
 
 
 
-OP_MODEL = "hdqn"# 定义用的对手车模型
+OP_MODEL = "pvp"# 定义用的对手车模型
 
 
 def main():
