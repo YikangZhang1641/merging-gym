@@ -41,7 +41,7 @@ def op_state(state):
 
 
 
-OP_MODEL = "hdqn"# 定义用的对手车模型
+OP_MODEL = "pvp"# 定义用的对手车模型
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
     collision_count = 0
 
     if OP_MODEL == "hdqn":
-        load_path = "2022--03--08 14:08:51"
+        load_path = "2022--03--28 18:03:45"
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
@@ -69,6 +69,8 @@ def main():
     else:
         print("using model: pvp")
 
+    action = 1
+    action_op = 1
     for i in range(episodes):
         state = env.reset()
         next_state = state
@@ -78,17 +80,20 @@ def main():
         while not done:
             env.render()
 
-            action = 1
             key_pressed = pygame.key.get_pressed()
             # print(sum(key_pressed))
 
             ########### ego command ###########
             if key_pressed[pygame.K_UP]:
-                action = 2
+                action += 1
+                if action > 2:
+                    action = 2
                 print("ego UP")
 
             elif key_pressed[pygame.K_DOWN]:
-                action = 0
+                action -= 1
+                if action < 0:
+                    action = 0
                 print("ego Down")
 
             ########## opponent command ###########
@@ -106,13 +111,16 @@ def main():
                 action_op = current_model.act(state[3:] + state[:3])
 
             else:
-                action_op = 1
                 if key_pressed[pygame.K_w]:
-                    action_op = 2
+                    action_op += 1
+                    if action_op > 2:
+                        action_op = 2
                     print("opponent UP")
 
                 elif key_pressed[pygame.K_s]:
-                    action_op = 0
+                    action_op -= 1
+                    if action_op < 0:
+                        action_op = 0
                     print("opponent Down")
             ###################################
 

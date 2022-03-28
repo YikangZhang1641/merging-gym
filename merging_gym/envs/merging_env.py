@@ -39,7 +39,7 @@ END_POINT = H - 50
 VEHICLE_W, VEHICLE_H = 4, 8
 
 # mpc预测时域
-prediction_t = 1.0
+prediction_t = 2.0
 
 # 可视化缩放比例
 scale = 2.0

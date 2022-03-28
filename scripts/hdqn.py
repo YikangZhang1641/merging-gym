@@ -231,7 +231,7 @@ def goal_status(states):
 
 def main():
 
-    episodes = 1000
+    episodes = 8000
     print("Collecting Experience....")
     reward_list = []
     q_eval_list = []
