@@ -55,7 +55,7 @@ def main():
     collision_count = 0
 
     if OP_MODEL == "hdqn":
-        load_path = "2022--03--29 14:05:36"
+        load_path = "2 1 -10 0.0005"
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None

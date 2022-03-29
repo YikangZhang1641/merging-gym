@@ -17,7 +17,7 @@ from helper import mpc_1d
 
 # 应该要由当前观测S获得op未来规划的belief， 其中基于op预测的belief是由数据得来
 
-font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+# font = cv2.FONT_HERSHEY_COMPLEX_SMALL
 
 R = 30000
 H, W = 1000, 300
@@ -28,7 +28,7 @@ dT = 0.2
 RFirst = 2.0
 RSecond = 1.0
 RCollision = -10
-param = 0.001
+param = 0.00005
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
@@ -75,6 +75,9 @@ class MergeEnv(gym.Env):
         self.observation_space = spaces.Box(low = np.array([-H, -W, -100, 0,    0, -H, -W, -100, 0,   0]),
                                             high = np.array([H,  W,  100, H,  100,  H,  W,  100, H, 100]),
                                             dtype = np.float16)
+        self.r1_accumulate = 0
+        self.r2_accumulate = 0
+
         pygame.init()
         self.screen = pygame.display.set_mode((3*WINDOW_W, WINDOW_H))
 
@@ -87,7 +90,7 @@ class MergeEnv(gym.Env):
         pygame.display.set_caption('Python numbers')
         # self.screen.fill((255, 255, 255))
 
-        # font = pygame.font.Font(None, 17)
+        self.font = pygame.font.Font(None, 17)
 
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
@@ -170,7 +173,10 @@ class MergeEnv(gym.Env):
             reward2 += RCollision
             info["collision"] = True
 
-        rewards = [reward1, reward2]        
+        rewards = [reward1, reward2]
+
+        self.r1_accumulate += reward1
+        self.r2_accumulate += reward2
 
         # print('MergeEnv Step successful!')
         return obs, rewards, self.done, info
@@ -199,7 +205,8 @@ class MergeEnv(gym.Env):
         # 起始条件随机
         # self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
         # self.state2 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
-        
+        self.r1_accumulate = 0
+        self.r2_accumulate = 0
         
         # print('MergeEnv Environment reset')
         states = self.observe()
@@ -243,18 +250,28 @@ class MergeEnv(gym.Env):
 
 
             clr1 = [0,0,0]
-            if self.state1['acc'] > 1e-2:
-                clr1 = [255, 0, 0]
-            elif self.state1['acc'] < -1e-2:
-                clr1 = [0, 0, 255]
-            print(self.state1['acc'])
+            if goal is not None:
+                if goal == 0:
+                    clr1 = [255, 0, 0]
+                elif goal == 1:
+                    clr1 = [0, 0, 255]
+            else:
+                if self.state1['acc'] > 1e-2:
+                    clr1 = [255, 0, 0]
+                elif self.state1['acc'] < -1e-2:
+                    clr1 = [0, 0, 255]
 
             clr2 = [0, 0, 0]
-            if self.state2['acc'] > 1e-2:
-                clr2 = [255, 0, 0]
-            elif self.state2['acc'] < -1e-2:
-                clr2 = [0, 0, 255]
-            print(self.state2['acc'])
+            if goal_op is not None:
+                if goal_op == 0:
+                    clr2 = [255, 0, 0]
+                elif goal_op == 1:
+                    clr2 = [0, 0, 255]
+            else:
+                if self.state2['acc'] > 1e-2:
+                    clr2 = [255, 0, 0]
+                elif self.state2['acc'] < -1e-2:
+                    clr2 = [0, 0, 255]
 
 
             pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
@@ -268,26 +285,46 @@ class MergeEnv(gym.Env):
 
 
 
-            if goal is not None:
-                if goal == 0:
-                    self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 0 : W - START_POINT + 14, :] = [0, 0, 1]
-                elif goal == 1:
-                    self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 0 : W - START_POINT + 14, :] = [0.5, 0, 0.5]
-                else:
-                    self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 0 : W - START_POINT + 14, :] = [1, 0, 0]
+            # if goal is not None:
+            #     if goal == 0:
+            #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 0 : W - START_POINT + 14, :] = [0, 0, 1]
+            #         pygame.draw.polygon(self.right_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
+            #
+            #     elif goal == 1:
+            #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 0 : W - START_POINT + 14, :] = [0.5, 0, 0.5]
+            #         pygame.draw.polygon(self.right_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
+            #     else:
+            #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 0 : W - START_POINT + 14, :] = [1, 0, 0]
+            #         pygame.draw.polygon(self.right_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
+            #
+            # if goal_op is not None:
+            #     if goal_op == 0:
+            #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 14 : W - START_POINT + 0, :] = [0, 0, 1]
+            #         pygame.draw.polygon(self.left_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
+            #     elif goal_op == 1:
+            #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 14 : W - START_POINT + 0, :] = [0.5, 0, 0.5]
+            #         pygame.draw.polygon(self.left_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
+            #     else:
+            #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
+            #         pygame.draw.polygon(self.left_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
 
-            if goal_op is not None:
-                if goal_op == 0:
-                    self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 14 : W - START_POINT + 0, :] = [0, 0, 1]
-                elif goal_op == 1:
-                    self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 14 : W - START_POINT + 0, :] = [0.5, 0, 0.5]
-                else:
-                    self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
+            spd_l = self.font.render("Spd: " + str(round(self.state2['vel'], 2)), 2, (0,0,0))
+            self.left_screen.blit(spd_l, (0.2*WINDOW_W, 0.6*WINDOW_H))
+            r1_l = self.font.render("Rwd:" + str(round(self.r2_accumulate, 2)), 2, (0,0,0))
+            self.left_screen.blit(r1_l, (0.2*WINDOW_W, 0.6*WINDOW_H + 15))
+
+
+            spd_r = self.font.render("Spd: " + str(round(self.state1['vel'], 2)), 2, (0,0,0))
+            self.right_screen.blit(spd_r, (0.7*WINDOW_W, 0.6*WINDOW_H))
+            r2_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
+            self.right_screen.blit(r2_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
 
 
             self.screen.blit(self.left_screen, (0,0))
             self.screen.blit(self.right_screen, (2*WINDOW_W,0))
             pygame.draw.lines(self.screen, (0,0,0), True, [(WINDOW_W, 0), (WINDOW_W, WINDOW_H)], 3)
+
+
 
             pygame.time.wait(50)
             pygame.display.update()
