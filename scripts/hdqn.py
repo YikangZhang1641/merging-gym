@@ -246,12 +246,13 @@ def main():
     collision_count = 0
     win_count = 0
 
-    load_path = None
+    load_path = "2 1 -10 0.0001(2)"
+
     upper = Goal_DQN(load_path)
     lower = HDQN(load_path)
 
-    upper_op = Goal_DQN(load_path)
-    lower_op = HDQN(load_path)
+    # upper_op = Goal_DQN(load_path)
+    # lower_op = HDQN(load_path)
 
     # opponent = dqn
     # opponent = DQN("results/self")
@@ -273,7 +274,7 @@ def main():
 
             goal = upper.choose_goal(state)
             # goal_op = 1
-            goal_op = upper_op.choose_goal(state[NUM_STATES//2:] + state[:NUM_STATES//2])
+            goal_op = upper.choose_goal(state[NUM_STATES//2:] + state[:NUM_STATES//2])
             extrinsic_reward = 0
 
             while not done:
@@ -283,7 +284,7 @@ def main():
                 action = lower.choose_action(goal_state)
 
                 goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[NUM_STATES//2:] + state[:NUM_STATES//2]), dim=0)
-                action_op = lower_op.choose_action(goal_state_op)
+                action_op = lower.choose_action(goal_state_op)
                 # action_op = (NUM_ACTIONS) // 2
 
                 next_state, rewards, done, info = env.step(action, action_op)
@@ -339,7 +340,7 @@ def main():
     ax[3].plot(winner_list[::], 'k-', label="win")
     plt.pause(0.001)
     
-    output_name = "selfplay"
+    output_name = "selfplay 2 1 -10 0.0001(2) + 2000eps"
     # os.mkdir(output_path)
     for a in ax:
         a.legend()

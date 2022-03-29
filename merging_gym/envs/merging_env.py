@@ -27,8 +27,8 @@ dT = 0.2
 # reward设计
 RFirst = 2.0
 RSecond = 1.0
-RCollision = -10
-param = 0.00005
+RCollision = -20
+param = 0.0001
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
