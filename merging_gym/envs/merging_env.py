@@ -23,12 +23,12 @@ R = 30000
 H, W = 1000, 300
 WINDOW_H, WINDOW_W = 1000, 300
 dT = 0.2
-param = 0.0001
 
 # reward设计
-RFirst = 1.0
+RFirst = 2.0
 RSecond = 1.0
 RCollision = -10
+param = 0.001
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
@@ -66,7 +66,6 @@ for i in range(collision_bc):
         tmp.append([i,-j])
         tmp.append([-i,-j])
 BC = np.array(tmp)
-
 
 
 class MergeEnv(gym.Env):
@@ -232,15 +231,15 @@ class MergeEnv(gym.Env):
             self.left_screen.blit(image, (0,0))
             self.right_screen.blit(image, (0,0))
 
-            pygame.draw.circle(self.left_screen, color=(100,100,  0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
-            pygame.draw.circle(self.left_screen, color=(100,100,  0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
-            pygame.draw.circle(self.left_screen, color=(255,255,255), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
-            pygame.draw.circle(self.left_screen, color=(255,255,255), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
+            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
 
-            pygame.draw.circle(self.right_screen, color=(100,100,  0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
-            pygame.draw.circle(self.right_screen, color=(100,100,  0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=0)
-            pygame.draw.circle(self.right_screen, color=(255,255,255), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
-            pygame.draw.circle(self.right_screen, color=(255,255,255), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=0)
+            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
 
 
             clr1 = [0,0,0]
@@ -250,19 +249,20 @@ class MergeEnv(gym.Env):
                 clr1 = [0, 0, 255]
             print(self.state1['acc'])
 
-            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
-            pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
-
-
-            clr2 = [0,0,0]
+            clr2 = [0, 0, 0]
             if self.state2['acc'] > 1e-2:
                 clr2 = [255, 0, 0]
             elif self.state2['acc'] < -1e-2:
                 clr2 = [0, 0, 255]
             print(self.state2['acc'])
 
+
             pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+            pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+
+            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
+
             pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + 3*WINDOW_H/5, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
             pygame.draw.polygon(self.right_screen, clr2, self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
 

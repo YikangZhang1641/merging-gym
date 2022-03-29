@@ -10,6 +10,7 @@ import os
 import datetime
 from tensorboardX import SummaryWriter
 import pygame
+import csv
 
 USE_CUDA = torch.cuda.is_available()
 
@@ -41,16 +42,20 @@ def op_state(state):
 
 
 
-OP_MODEL = "pvp"# 定义用的对手车模型
+OP_MODEL = "hdqn"# 定义用的对手车模型
 
 
 def main():
-    episodes = 100
+    if not os.path.isdir("log"):
+        os.mkdir("log")
+    log_path = os.path.join("log", datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S"))
+    os.mkdir(log_path)
 
+    episodes = 100
     collision_count = 0
 
     if OP_MODEL == "hdqn":
-        load_path = "2022--03--28 18:03:45"
+        load_path = "2022--03--29 14:05:36"
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
@@ -78,61 +83,68 @@ def main():
         action = 2
         action_op = 2
 
-        while not done:
-            env.render()
+        filename = os.path.join(log_path, "episode"+str(i))
+        with open(filename, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(["x2 - x1", "y2 - y1", "self.state2['vel'] - self.state1['vel']", "END_POINT - self.state1['pos']", "self.state1['vel']", "x1 - x2", "y1 - y2", "self.state1['vel'] - self.state2['vel']", "END_POINT - self.state2['pos']", "self.state2['vel']", "action1", "action2", "reward1", "reward2"])
+            while not done:
+                env.render()
 
-            key_pressed = pygame.key.get_pressed()
-            # print(sum(key_pressed))
+                key_pressed = pygame.key.get_pressed()
+                # print(sum(key_pressed))
 
-            ########### ego command ###########
-            if key_pressed[pygame.K_UP]:
-                action += 1
-                if action > NUM_ACTIONS - 1:
-                    action = NUM_ACTIONS - 1
-                print("ego UP")
+                ########### ego command ###########
+                if key_pressed[pygame.K_UP]:
+                    action += 1
+                    if action > NUM_ACTIONS - 1:
+                        action = NUM_ACTIONS - 1
+                    print("ego UP")
 
-            elif key_pressed[pygame.K_DOWN]:
-                action -= 1
-                if action < 0:
-                    action = 0
-                print("ego Down")
+                elif key_pressed[pygame.K_DOWN]:
+                    action -= 1
+                    if action < 0:
+                        action = 0
+                    print("ego Down")
 
-            ########## opponent command ###########
-            if OP_MODEL == "hdqn":
-                if goal_op is None or goal_op == goal_status( op_state(state) ):
-                    goal_op = upper_op.choose_goal( op_state(state) )
+                ########## opponent command ###########
+                if OP_MODEL == "hdqn":
+                    if goal_op is None or goal_op == goal_status( op_state(state) ):
+                        goal_op = upper_op.choose_goal( op_state(state) )
 
-                goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + op_state(state)), dim=0)
-                action_op = lower_op.choose_action(goal_state_op)
+                    goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + op_state(state)), dim=0)
+                    action_op = lower_op.choose_action(goal_state_op)
 
-            elif OP_MODEL == "dqn":
-                action_op = dqn.choose_action(state)
+                elif OP_MODEL == "dqn":
+                    action_op = dqn.choose_action(state)
 
-            elif OP_MODEL == "rainbow_dqn":
-                action_op = current_model.act(state[3:] + state[:3])
+                elif OP_MODEL == "rainbow_dqn":
+                    action_op = current_model.act(state[3:] + state[:3])
 
-            else:
-                if key_pressed[pygame.K_w]:
-                    action_op += 1
-                    if action_op > NUM_ACTIONS - 1:
-                        action_op = NUM_ACTIONS - 1
-                    print("opponent UP")
+                else:
+                    if key_pressed[pygame.K_w]:
+                        action_op += 1
+                        if action_op > NUM_ACTIONS - 1:
+                            action_op = NUM_ACTIONS - 1
+                        print("opponent UP")
 
-                elif key_pressed[pygame.K_s]:
-                    action_op -= 1
-                    if action_op < 0:
-                        action_op = 0
-                    print("opponent Down")
-            ###################################
+                    elif key_pressed[pygame.K_s]:
+                        action_op -= 1
+                        if action_op < 0:
+                            action_op = 0
+                        print("opponent Down")
+                ###################################
 
-            pygame.event.pump()
-            next_state, rewards, done, info = env.step(action, action_op)
+                pygame.event.pump()
+                next_state, rewards, done, info = env.step(action, action_op)
 
-            if info["collision"]:
-                collision_count += 1
-                print("Collided!", collision_count / (i + 1))
+                writer.writerow(state + [action, action_op] + rewards)
 
-            state = next_state
+                if info["collision"]:
+                    collision_count += 1
+                    print("Collided!", collision_count / (i + 1))
+
+                state = next_state
+
 
 if __name__ == '__main__':
     main()

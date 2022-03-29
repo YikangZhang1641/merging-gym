@@ -231,7 +231,7 @@ def goal_status(states):
 
 def main():
 
-    episodes = 8000
+    episodes = 2000
     print("Collecting Experience....")
     reward_list = []
     q_eval_list = []
@@ -314,7 +314,7 @@ def main():
                 upper.learn()
 
 
-        q_eval_value = upper.meta_eval_net.forward(torch.Tensor(state).cuda())[action]
+        q_eval_value = upper.meta_eval_net.forward(torch.Tensor(state).cuda())[goal]
         q_eval_list.append(q_eval_value)
         writer.add_scalar('scalar/q_eval', q_eval_value, i)
 
@@ -339,7 +339,7 @@ def main():
     ax[3].plot(winner_list[::], 'k-', label="win")
     plt.pause(0.001)
     
-    output_name = "action_Vexp_ramp_acc_L0"
+    output_name = "selfplay"
     # os.mkdir(output_path)
     for a in ax:
         a.legend()
