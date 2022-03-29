@@ -1,5 +1,6 @@
 import gym
 import merging_gym
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -246,7 +247,7 @@ def main():
     collision_count = 0
     win_count = 0
 
-    load_path = "2 1 -10 0.0001(2)"
+    load_path = None
 
     upper = Goal_DQN(load_path)
     lower = HDQN(load_path)
@@ -340,7 +341,7 @@ def main():
     ax[3].plot(winner_list[::], 'k-', label="win")
     plt.pause(0.001)
     
-    output_name = "selfplay 2 1 -10 0.0001(2) + 2000eps"
+    output_name = "selfplay" + str(env.show_reward())
     # os.mkdir(output_path)
     for a in ax:
         a.legend()

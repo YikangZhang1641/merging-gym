@@ -28,7 +28,7 @@ dT = 0.2
 RFirst = 2.0
 RSecond = 1.0
 RCollision = -20
-param = 0.0001
+param = 0.001
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
@@ -109,6 +109,9 @@ class MergeEnv(gym.Env):
         self.reset()
         
         print('MergeEnvd Environment initialized')
+
+    def show_reward(self):
+        return RFirst, RSecond, RCollision, param
 
     def observe(self):
         x1, y1 = lon2coord(self.state1['pos'], "ego")
