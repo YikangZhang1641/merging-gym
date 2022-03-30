@@ -226,7 +226,7 @@ class MergeEnv(gym.Env):
         p3 = scale * (pygame.math.Vector2(rect.bottomleft) - pivot).rotate(-yaw) + pivot
         return p0, p1, p2, p3
 
-    def render(self, goal = None, goal_op = None):
+    def render(self, goal = None, goal_op = None, player=2):
         mode = "human"
         assert mode in ["human", "rgb_array"], "Invalid mode, must be either \"human\" or \"rgb_array\""
         if mode == "human":
@@ -322,9 +322,12 @@ class MergeEnv(gym.Env):
             r2_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
             self.right_screen.blit(r2_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
 
+            if player == 1:
+                self.screen.blit(self.right_screen, (WINDOW_W,0))
 
-            self.screen.blit(self.left_screen, (0,0))
-            self.screen.blit(self.right_screen, (2*WINDOW_W,0))
+            elif player == 2:
+                self.screen.blit(self.left_screen, (0,0))
+                self.screen.blit(self.right_screen, (2*WINDOW_W,0))
             pygame.draw.lines(self.screen, (0,0,0), True, [(WINDOW_W, 0), (WINDOW_W, WINDOW_H)], 3)
 
 

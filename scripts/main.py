@@ -202,7 +202,7 @@ def main():
         r = copy.copy(ep_reward)
         reward_list.append(r)
         collision_list.append(collision_count / (i+1))
-        if state[0] > state[3]:
+        if state[8] > state[3]:
             win_count += 1
         winner_list.append(win_count / (i+1))
         q_eval_list.append(q_eval_value)
@@ -216,7 +216,7 @@ def main():
 
         print("episode", i, "reward", ep_reward)
 
-    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
+    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + "normal dqn" + str(env.show_reward())
     output_name = "normal dqn" + str(env.show_reward())
     os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, output_name+".png"))

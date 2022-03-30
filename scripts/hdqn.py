@@ -33,6 +33,8 @@ NUM_STATES = env.observation_space.shape[0]
 ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
 
 
+
+
 class Net(nn.Module):
     """docstring for Net"""
     def __init__(self, num_inputs, num_outputs):
@@ -248,17 +250,18 @@ def main():
     win_count = 0
 
     load_path = None
-
     upper = Goal_DQN(load_path)
     lower = HDQN(load_path)
 
-    # upper_op = Goal_DQN(load_path)
-    # lower_op = HDQN(load_path)
 
-    # opponent = dqn
-    # opponent = DQN("results/self")
-    # opponent = DQN("L1")
-    # opponent2 = DQN("L0")
+    Strategy_OP = "L1"
+    if Strategy_OP == "selfplay":
+        upper_op = upper
+        lower_op = lower
+    elif Strategy_OP != "L0":
+        load_path_op = "2022--03--30 16:25:40 hdqn-k1(2.0, 1.0, -10, 0.001)"
+        upper_op = Goal_DQN(load_path_op)
+        lower_op = HDQN(load_path_op)
 
     goal, goal_op = None, None
 
@@ -274,8 +277,8 @@ def main():
         while not done:
 
             goal = upper.choose_goal(state)
-            # goal_op = 1
-            goal_op = upper.choose_goal(state[NUM_STATES//2:] + state[:NUM_STATES//2])
+            if Strategy_OP != "L0":
+                goal_op = upper_op.choose_goal(state[NUM_STATES//2:] + state[:NUM_STATES//2])
             extrinsic_reward = 0
 
             while not done:
@@ -284,9 +287,13 @@ def main():
                 goal_state = torch.unsqueeze(torch.FloatTensor([goal] + state), dim=0)
                 action = lower.choose_action(goal_state)
 
-                goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[NUM_STATES//2:] + state[:NUM_STATES//2]), dim=0)
-                action_op = lower.choose_action(goal_state_op)
-                # action_op = (NUM_ACTIONS) // 2
+                # 如果对手为l0，匀速策略，则直接覆盖action_op为(NUM_ACTIONS) // 2
+                if Strategy_OP == "L0":
+                    action_op = (NUM_ACTIONS) // 2
+                # 如果对手为l1以上或self play，则获取其参数所表示的subgoal
+                else:
+                    goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[NUM_STATES//2:] + state[:NUM_STATES//2]), dim=0)
+                    action_op = lower_op.choose_action(goal_state_op)
 
                 next_state, rewards, done, info = env.step(action, action_op)
                 goal = upper.choose_goal(next_state)
@@ -341,7 +348,7 @@ def main():
     ax[3].plot(winner_list[::], 'k-', label="win")
     plt.pause(0.001)
     
-    output_name = "selfplay"# + str(env.show_reward())
+    output_name = "op:" + Strategy_OP# + str(env.show_reward())
     # os.mkdir(output_path)
     for a in ax:
         a.legend()

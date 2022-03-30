@@ -42,7 +42,7 @@ def op_state(state):
 
 
 
-OP_MODEL = "dqn"# 定义用的对手车模型
+OP_MODEL = "hdqn"# 定义用的对手车模型
 
 
 def main():
@@ -55,7 +55,7 @@ def main():
     collision_count = 0
 
     if OP_MODEL == "hdqn":
-        load_path = "2.0, 1.0, -10, 0.001"
+        load_path = "2022--03--30 16:25:40 hdqn-k1(2.0, 1.0, -10, 0.001)"
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
@@ -94,17 +94,31 @@ def main():
                 # print(sum(key_pressed))
 
                 ########### ego command ###########
-                if key_pressed[pygame.K_UP]:
-                    action += 1
-                    if action > NUM_ACTIONS - 1:
-                        action = NUM_ACTIONS - 1
-                    print("ego UP")
+                if key_pressed[pygame.K_KP0]:
+                    action = 0
+                elif key_pressed[pygame.K_KP1]:
+                    action = 1
+                elif key_pressed[pygame.K_KP2]:
+                    action = 2
+                elif key_pressed[pygame.K_KP3]:
+                    action = 3
+                elif key_pressed[pygame.K_KP4]:
+                    action = 4
 
-                elif key_pressed[pygame.K_DOWN]:
-                    action -= 1
-                    if action < 0:
-                        action = 0
-                    print("ego Down")
+                # if key_pressed[pygame.K_UP]:
+                #     action += 1
+                #     if action > NUM_ACTIONS - 1:
+                #         action = NUM_ACTIONS - 1
+                #     print("ego UP")
+                #
+                # elif key_pressed[pygame.K_DOWN]:
+                #     action -= 1
+                #     if action < 0:
+                #         action = 0
+                #     print("ego Down")
+
+
+
 
                 ########## opponent command ###########
                 if OP_MODEL == "hdqn":
