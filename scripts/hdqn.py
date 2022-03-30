@@ -222,14 +222,18 @@ class HDQN():
 
 def goal_status(states):
     dx1, dy1, dv1, x1, v1, dx2, dy2, dv2, x2, v2 = states
-    ego_time = x1 / (v1 + 0.01)
+    # ego_time = x1 / (v1 + 0.01)
     # op_time = states[3] / (states[4] + 0.01)
-    if ego_time < (x2 - 2.0) / (v2 + 0.01) * 0.9:
+    # if ego_time < (x2 - 2.0) / (v2 + 0.01) * 0.9:
+    #     return 0
+    # elif ego_time < (x2 + 2.0) / (v2 + 0.01) * 1.1:
+    #     return 1
+    # return 2
+    if dx1 < -0.5 * v2:
         return 0
-    elif ego_time < (x2 + 2.0) / (v2 + 0.01) * 1.1:
+    elif dx1 < 0.5 * v2:
         return 1
     return 2
-
 
 
 def main():
