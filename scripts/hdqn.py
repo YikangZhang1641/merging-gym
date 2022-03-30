@@ -263,7 +263,7 @@ def main():
     goal, goal_op = None, None
 
     # goal = meta_model.act(state, epsilon_by_frame(frame_idx))
-    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + str(env.show_reward())
+    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + " hdqn" + str(env.show_reward())
     writer = SummaryWriter(log_dir = output_path)
 
     for i in range(episodes):

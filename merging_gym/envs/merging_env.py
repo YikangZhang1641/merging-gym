@@ -28,7 +28,7 @@ dT = 0.2
 RFirst = 2.0
 RSecond = 1.0
 RCollision = -10
-param = 0.0001
+param = 0.001
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
@@ -154,8 +154,8 @@ class MergeEnv(gym.Env):
 
         obs = self.observe()
 
-        reward1 = -param * (self.state1['vel'] - 20.0) * (self.state1['vel'] - 20.0)
-        reward2 = -param * (self.state2['vel'] - 20.0) * (self.state2['vel'] - 20.0)
+        reward1 = -param * np.abs(self.state1['vel'] - 20.0) # (self.state1['vel'] - 20.0)
+        reward2 = -param * np.abs(self.state2['vel'] - 20.0) #* (self.state2['vel'] - 20.0)
         # reward1 = -param * self.state1['acc'] * self.state1['acc']
         # reward2 = -param * self.state2['acc'] * self.state2['acc']
 
