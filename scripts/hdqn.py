@@ -254,7 +254,7 @@ def main():
     lower = HDQN(load_path)
 
 
-    Strategy_OP = "L1"
+    Strategy_OP = "L1" # "selfplay"，"L0"或者其他，会保存为文件名
     if Strategy_OP == "selfplay":
         upper_op = upper
         lower_op = lower
