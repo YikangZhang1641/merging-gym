@@ -263,7 +263,7 @@ def main():
     goal, goal_op = None, None
 
     # goal = meta_model.act(state, epsilon_by_frame(frame_idx))
-    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
+    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + str(env.show_reward())
     writer = SummaryWriter(log_dir = output_path)
 
     for i in range(episodes):
@@ -320,7 +320,7 @@ def main():
         q_eval_list.append(q_eval_value)
         writer.add_scalar('scalar/q_eval', q_eval_value, i)
 
-        r = copy.copy(reward)
+        r = copy.copy(ep_reward)
         reward_list.append(r)
         writer.add_scalar('scalar/reward', r, i)
 
@@ -341,7 +341,7 @@ def main():
     ax[3].plot(winner_list[::], 'k-', label="win")
     plt.pause(0.001)
     
-    output_name = "selfplay" + str(env.show_reward())
+    output_name = "selfplay"# + str(env.show_reward())
     # os.mkdir(output_path)
     for a in ax:
         a.legend()

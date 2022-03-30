@@ -151,7 +151,7 @@ def main():
     # opponent = DQN("L1")
     # opponent2 = DQN("L0")
     
-    episodes = 4000
+    episodes = 2000
     print("Collecting Experience....")
     reward_list = []
     q_eval_list = []
@@ -174,13 +174,12 @@ def main():
         state = env.reset()
         ep_reward = 0
         while True:
-            env.render()
+            # env.render()
 
             action = dqn.choose_action(state)
-            action_op = opponent.choose_action(state[3:] + state[:3])
+            action_op = opponent.choose_action(state[NUM_STATES//2:] + state[:NUM_STATES//2])
 
             next_state, rewards, done, info = env.step(action, action_op)
-            print("ego/op action,", action, action_op)
 
             if info["collision"]:
                 collision_count += 1
@@ -200,7 +199,7 @@ def main():
                 break
             state = next_state
         q_eval_value = dqn.eval_net.forward(torch.Tensor(state))[action]
-        r = copy.copy(reward)
+        r = copy.copy(ep_reward)
         reward_list.append(r)
         collision_list.append(collision_count / (i+1))
         if state[0] > state[3]:
@@ -214,9 +213,11 @@ def main():
             ax[2].plot(collision_list, 'k-', label="collision_rate")
             ax[3].plot(winner_list, 'k-', label="win")
             plt.pause(0.001)
-    
+
+        print("episode", i, "reward", ep_reward)
+
     output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S")
-    output_name = "action_Vexp_ramp_acc_L0"
+    output_name = "normal dqn" + str(env.show_reward())
     os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, output_name+".png"))
 
