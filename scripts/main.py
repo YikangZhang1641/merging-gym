@@ -25,6 +25,7 @@ NUM_ACTIONS = env.action_space.n
 NUM_STATES = env.observation_space.shape[0]
 ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample.shape
 
+USE_CUDA = torch.cuda.is_available()
 
 class Net(nn.Module):
     """docstring for Net"""
@@ -77,7 +78,10 @@ class DQN():
     def __init__(self, load_path=None):
         super(DQN, self).__init__()
         self.eval_net, self.target_net = Net(), Net()
-            
+        if USE_CUDA:
+            self.eval_net = self.eval_net.cuda()
+            self.target_net = self.target_net.cuda()
+
         if load_path is not None:
             self.eval_net.load_state_dict(torch.load(os.path.join(load_path, "eval.pth")))
             self.target_net.load_state_dict(torch.load(os.path.join(load_path, "target.pth")))
@@ -94,10 +98,13 @@ class DQN():
 
     def choose_action(self, state):
         state = torch.unsqueeze(torch.FloatTensor(state), 0) # get a 1D array
+        if USE_CUDA:
+            state = state.cuda()
+
         # print("later state,", state)
         if np.random.randn() <= EPISILO:# greedy policy
             action_value = self.eval_net.forward(state)
-            action = torch.max(action_value, 1)[1].data.numpy()
+            action = torch.max(action_value, 1)[1].cpu().data.numpy()
             action = action[0] if ENV_A_SHAPE == 0 else action.reshape(ENV_A_SHAPE)
         else: # random policy
             action = np.random.randint(0,NUM_ACTIONS)
@@ -127,6 +134,12 @@ class DQN():
         batch_reward = torch.FloatTensor(batch_memory[:, NUM_STATES+1:NUM_STATES+2])
         batch_next_state = torch.FloatTensor(batch_memory[:,-NUM_STATES:])
 
+        if USE_CUDA:
+            batch_state = batch_state.cuda()
+            batch_action = batch_action.cuda()
+            batch_reward = batch_reward.cuda()
+            batch_next_state = batch_next_state.cuda()
+
         #q_eval
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
@@ -145,11 +158,13 @@ class DQN():
 
 
 def main():
+    Strategy_OP = "L1" # "selfplay"，"L0"或者其他，会保存为文件名
+
     dqn = DQN()
-    opponent = dqn
-    # opponent = DQN("results/self")
-    # opponent = DQN("L1")
-    # opponent2 = DQN("L0")
+    if Strategy_OP == "selfplay":
+        opponent = dqn
+    else:
+        opponent = DQN("2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)")
     
     episodes = 2000
     print("Collecting Experience....")
@@ -177,7 +192,10 @@ def main():
             # env.render()
 
             action = dqn.choose_action(state)
-            action_op = opponent.choose_action(state[NUM_STATES//2:] + state[:NUM_STATES//2])
+            if Strategy_OP == "L0":
+                action_op = None
+            else:
+                action_op = opponent.choose_action(state[NUM_STATES//2:] + state[:NUM_STATES//2])
 
             next_state, rewards, done, info = env.step(action, action_op)
 
@@ -198,7 +216,7 @@ def main():
             if done:
                 break
             state = next_state
-        q_eval_value = dqn.eval_net.forward(torch.Tensor(state))[action]
+        q_eval_value = dqn.eval_net.forward(torch.Tensor(state).cuda())[action]
         r = copy.copy(ep_reward)
         reward_list.append(r)
         collision_list.append(collision_count / (i+1))
@@ -216,7 +234,7 @@ def main():
 
         print("episode", i, "reward", ep_reward)
 
-    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + "normal dqn" + str(env.show_reward())
+    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + "normal dqn with OP:" + Strategy_OP + str(env.show_reward())
     output_name = "normal dqn" + str(env.show_reward())
     os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, output_name+".png"))
