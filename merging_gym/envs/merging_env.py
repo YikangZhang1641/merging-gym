@@ -28,7 +28,8 @@ dT = 0.2
 RFirst = 2.0
 RSecond = 1.0
 RCollision = -10
-param = 0.001
+vel_penalty = 0.001
+time_penalty = 0
 
 # 车道线绝对坐标
 TRAJ = np.array([int( R - np.sqrt(R * R - (H - x) * (H - x) )) for x in range(H)])
@@ -111,7 +112,7 @@ class MergeEnv(gym.Env):
         print('MergeEnvd Environment initialized')
 
     def show_reward(self):
-        return RFirst, RSecond, RCollision, param
+        return RFirst, RSecond, RCollision, vel_penalty
 
     def observe(self):
         x1, y1 = lon2coord(self.state1['pos'], "ego")
@@ -133,11 +134,11 @@ class MergeEnv(gym.Env):
         res = mpc_1d(x0, v0, xt, vt, t)
         return res.action()
 
-    def step(self, action1, action2):
+    def step(self, action1, action2=None):
         self.action1, self.action2 = action1, action2
 
         self.time_stamp += dT
-        if self.time_stamp > 300:
+        if self.time_stamp > 500:
             self.done = True
         info = {"collision": False}
 
@@ -146,31 +147,34 @@ class MergeEnv(gym.Env):
 
         self.state1['vel'] = max(0, self.state1['vel'] + self.state1['acc'] * dT)
         self.state1['pos'] += self.state1['vel'] * dT
-        
-        self.state2['acc'] = self.action_to_acc(x0=self.state2['pos'], v0=self.state2['vel'], xt=self.state2['pos'] + self.action_dict[action2] * prediction_t, vt=self.action_dict[action2], t=prediction_t)
 
+        self.state2['acc'] = 0 if action2 is None else self.action_to_acc(x0=self.state2['pos'], v0=self.state2['vel'], xt=self.state2['pos'] + self.action_dict[action2] * prediction_t, vt=self.action_dict[action2], t=prediction_t)
         self.state2['vel'] = max(0, self.state2['vel'] + self.state2['acc'] * dT)
         self.state2['pos'] += self.state2['vel'] * dT
 
         obs = self.observe()
 
-        reward1 = -param * np.abs(self.state1['vel'] - 20.0) # (self.state1['vel'] - 20.0)
-        reward2 = -param * np.abs(self.state2['vel'] - 20.0) #* (self.state2['vel'] - 20.0)
-        # reward1 = -param * self.state1['acc'] * self.state1['acc']
-        # reward2 = -param * self.state2['acc'] * self.state2['acc']
+        reward1 = - time_penalty - vel_penalty * np.abs(self.state1['vel'] - 20.0) # (self.state1['vel'] - 20.0)
+        reward2 = - time_penalty - vel_penalty * np.abs(self.state2['vel'] - 20.0) #* (self.state2['vel'] - 20.0)
+        # reward1 = -vel_penalty * self.state1['acc'] * self.state1['acc']
+        # reward2 = -vel_penalty * self.state2['acc'] * self.state2['acc']
 
-        if not self.done and self.state1['pos'] > END_POINT:
+        if self.state1['pos'] > END_POINT:
             self.done = True
-            reward1 += RFirst
-            reward2 += RSecond
+            if self.winner is None:
+                self.winner = 1
+                reward1 += RFirst
+            else:
+                reward1 += RSecond
 
-        if not self.done and self.state2['pos'] >= END_POINT:
-            self.done = True
-            reward2 += RFirst
-            reward1 += RSecond
-
+        if self.winner is not 2 and self.state2['pos'] >= END_POINT:
+            if self.winner is None:
+                self.winner = 2
+                reward2 += RFirst
+            else:
+                reward2 += RSecond
         
-        if self.is_collided() or self.state1['pos'] < START_POINT or self.state2['pos'] < START_POINT:
+        if self.is_collided():
             self.done = True
             reward1 += RCollision
             reward2 += RCollision
@@ -203,11 +207,12 @@ class MergeEnv(gym.Env):
 
         # 起始条件相同
         self.state1 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
-        self.state2 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
+        # self.state2 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
 
         # 起始条件随机
         # self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
-        # self.state2 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
+        self.state2 = {'pos': START_POINT + np.random.uniform(-10, 10), 'vel': 20.0 + np.random.uniform(-20, 20), 'acc': 0.0}
+
         self.r1_accumulate = 0
         self.r2_accumulate = 0
         

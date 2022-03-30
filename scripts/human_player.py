@@ -42,7 +42,7 @@ def op_state(state):
 
 
 
-OP_MODEL = "hdqn"# 定义用的对手车模型
+OP_MODEL = "dqn"# 定义用的对手车模型
 
 
 def main():
@@ -55,14 +55,14 @@ def main():
     collision_count = 0
 
     if OP_MODEL == "hdqn":
-        load_path = "2022--03--30 16:25:40 hdqn-k1(2.0, 1.0, -10, 0.001)"
+        load_path = "2022--03--31 00:01:27 hdqn 对手L0初始随机, acc强制0，对手到达也不停车(2.0, 1.0, -100, 0.001)"
         upper_op = Goal_DQN(load_path)
         lower_op = HDQN(load_path)
         goal, goal_op = None, None
         print("using model: hdqn")
 
     elif OP_MODEL == "dqn":
-        load_path = "2022--03--30 02:23:34"
+        load_path = "2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)"
         dqn = DQN(load_path)
         print("using model: dqn")
 

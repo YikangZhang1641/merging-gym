@@ -254,19 +254,19 @@ def main():
     lower = HDQN(load_path)
 
 
-    Strategy_OP = "L1" # "selfplay"，"L0"或者其他，会保存为文件名
+    Strategy_OP = "L0" # "selfplay"，"L0"或者其他，会保存为文件名
     if Strategy_OP == "selfplay":
         upper_op = upper
         lower_op = lower
     elif Strategy_OP != "L0":
-        load_path_op = "2022--03--30 16:25:40 hdqn-k1(2.0, 1.0, -10, 0.001)"
+        load_path_op = "2022--03--30 19:23:50 hdqn 对手初始随机(2.0, 1.0, -10, 0.001)"
         upper_op = Goal_DQN(load_path_op)
         lower_op = HDQN(load_path_op)
 
     goal, goal_op = None, None
 
     # goal = meta_model.act(state, epsilon_by_frame(frame_idx))
-    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + " hdqn" + str(env.show_reward())
+    output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + " hdqn 对手" + Strategy_OP + "初始随机, acc强制0，对手到达也不停车" + str(env.show_reward())
     writer = SummaryWriter(log_dir = output_path)
 
     for i in range(episodes):
@@ -287,11 +287,11 @@ def main():
                 goal_state = torch.unsqueeze(torch.FloatTensor([goal] + state), dim=0)
                 action = lower.choose_action(goal_state)
 
-                # 如果对手为l0，匀速策略，则直接覆盖action_op为(NUM_ACTIONS) // 2
                 if Strategy_OP == "L0":
-                    action_op = (NUM_ACTIONS) // 2
-                # 如果对手为l1以上或self play，则获取其参数所表示的subgoal
+                    # 如果对手为l0，匀速策略，则直接覆盖action_op为(NUM_ACTIONS) // 2
+                    action_op = None
                 else:
+                    # 如果对手为l1以上或self play，则获取其参数所表示的subgoal
                     goal_state_op = torch.unsqueeze(torch.FloatTensor([goal_op] + state[NUM_STATES//2:] + state[:NUM_STATES//2]), dim=0)
                     action_op = lower_op.choose_action(goal_state_op)
 
