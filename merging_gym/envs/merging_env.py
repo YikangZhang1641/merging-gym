@@ -213,11 +213,11 @@ class MergeEnv(gym.Env):
 
         # 起始条件相同
         self.state1 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
-        # self.state2 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
+        self.state2 = {'pos': START_POINT, 'vel': 20.0, 'acc': 0.0}
 
         # 起始条件随机
         # self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
-        self.state2 = {'pos': START_POINT + np.random.uniform(-VEHICLE_H/2, VEHICLE_H/2), 'vel': 20.0 + np.random.uniform(-5, 5), 'acc': 0.0}
+        # self.state2 = {'pos': START_POINT + np.random.uniform(-VEHICLE_H/2, VEHICLE_H/2), 'vel': 20.0 + np.random.uniform(-5, 10), 'acc': 0.0}
 
         self.r1_accumulate = 0
         self.r2_accumulate = 0

@@ -67,6 +67,10 @@ def main():
         # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #激进，35左右
         # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #不行，持续损失
         # load_path = "2022--03--31 17:16:40normal dqn with OP:selfplay(2.0, 1.0, -10, 0.001)" #不行，过于保守
+        # load_path = "2022--03--31 18:43:06normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
+        # load_path = "2022--03--31 20:51:13normal dqn with OP:L2(2.0, 1.0, -10, 0.001)"
+        load_path = "2022--03--31 20:41:19normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
+
         dqn = DQN(load_path)
         print("using model: dqn")
 

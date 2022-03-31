@@ -236,7 +236,7 @@ def main():
         print("episode", i, "reward", ep_reward)
 
     output_path = datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S") + "normal dqn with OP:" + Strategy_OP + str(env.show_reward())
-    output_name = "normal dqn" + str(env.show_reward())
+    output_name = "normal dqn 更改终止条件后对阵L1平衡策略，初始状态相同" + str(env.show_reward())
     os.mkdir(output_path)
     plt.savefig(os.path.join(output_path, output_name+".png"))
 
