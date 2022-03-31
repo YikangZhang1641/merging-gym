@@ -81,6 +81,7 @@ class MergeEnv(gym.Env):
 
         pygame.init()
         self.screen = pygame.display.set_mode((3*WINDOW_W, WINDOW_H))
+        self.screen.fill((0, 0, 0))
 
         self.left_screen = pygame.Surface((WINDOW_W, WINDOW_H))
         self.left_screen.fill((255, 255, 255))
@@ -89,10 +90,9 @@ class MergeEnv(gym.Env):
         self.right_screen.fill((255, 255, 255))
 
         pygame.display.set_caption('Python numbers')
-        # self.screen.fill((255, 255, 255))
 
         self.font = pygame.font.Font(None, 17)
-        self.mark_font = pygame.font.Font(None, 50)
+        self.mark_font = pygame.font.SysFont(None, 50)
 
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
@@ -105,7 +105,7 @@ class MergeEnv(gym.Env):
 
         # Create a canvas to render the environment images upon
         self.canvas = np.ones((H, W, 3)) * 1
-        self.canvas_bak = self.canvas.copy()
+        self.image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
 
         self.time_stamp = 0
         self.reset()
@@ -206,6 +206,7 @@ class MergeEnv(gym.Env):
         return False
 
     def reset(self):
+
         start_diff = 50.0
         self.done = False
         self.winner = None
@@ -237,128 +238,163 @@ class MergeEnv(gym.Env):
         p3 = scale * (pygame.math.Vector2(rect.bottomleft) - pivot).rotate(-yaw) + pivot
         return p0, p1, p2, p3
 
-    def render(self, goal = None, goal_op = None, player=2, sum_r1 = 0, sum_r2 = 0, tag_left=None, tag_right=None, last_r1=0, last_r2=0):
-        mode = "human"
-        assert mode in ["human", "rgb_array"], "Invalid mode, must be either \"human\" or \"rgb_array\""
-        if mode == "human":
-            # canvas_bak = self.canvas.copy()
-            # self.canvas = self.canvas_bak.copy()
-            image = pygame.surfarray.make_surface(self.canvas.transpose(1,0,2) * 255)
-            x1, y1 = lon2coord(self.state1['pos'], "ego")
-            x2, y2 = lon2coord(self.state2['pos'], "opponent")
-            x1_t, y1_t = lon2coord(self.state1['pos'] + self.state1['vel'] * prediction_t, "ego")
-            x2_t, y2_t = lon2coord(self.state2['pos'] + self.state2['vel'] * prediction_t, "opponent")
+    def render(self, goal = None, goal_op = None, player=1, sum_r1 = 0, sum_r2 = 0, tag_left=None, tag_right=None, last_r1=0, last_r2=0):
 
-            self.left_screen.blit(image, (0,0))
-            self.right_screen.blit(image, (0,0))
+        x1, y1 = lon2coord(self.state1['pos'], "ego")
+        x2, y2 = lon2coord(self.state2['pos'], "opponent")
+        x1_t, y1_t = lon2coord(self.state1['pos'] + self.state1['vel'] * prediction_t, "ego")
+        x2_t, y2_t = lon2coord(self.state2['pos'] + self.state2['vel'] * prediction_t, "opponent")
 
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+        self.left_screen.blit(self.image, (0,0))
+        self.right_screen.blit(self.image, (0,0))
 
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
-            pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+        pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+        pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+        pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 - R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+        pygame.draw.circle(self.left_screen, color=(0,0,0), center=(scale * (W/2 + R - y2) + WINDOW_W / 2, -scale * x2 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+
+        pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+        pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R + VEHICLE_W), width=1)
+        pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 - R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
+        pygame.draw.circle(self.right_screen, color=(0,0,0), center=(scale * (W/2 + R - y1) + WINDOW_W / 2, -scale * x1 + WINDOW_H / 2), radius=scale * (R - VEHICLE_W), width=1)
 
 
-            clr1 = [0,0,0]
-            if goal is not None:
-                if goal == 0:
-                    clr1 = [255, 0, 0]
-                elif goal == 1:
-                    clr1 = [0, 0, 255]
-            else:
-                if self.state1['acc'] > 1e-2:
-                    clr1 = [255, 0, 0]
-                elif self.state1['acc'] < -1e-2:
-                    clr1 = [0, 0, 255]
+        clr1 = [0,0,0]
+        if goal is not None:
+            if goal == 0:
+                clr1 = [255, 0, 0]
+            elif goal == 1:
+                clr1 = [0, 0, 255]
+        else:
+            if self.state1['acc'] > 1e-2:
+                clr1 = [255, 0, 0]
+            elif self.state1['acc'] < -1e-2:
+                clr1 = [0, 0, 255]
 
-            clr2 = [0, 0, 0]
-            # if goal_op is not None:
-            #     if goal_op == 0:
-            #         clr2 = [255, 0, 0]
-            #     elif goal_op == 1:
-            #         clr2 = [0, 0, 255]
-            # else:
-            #     if self.state2['acc'] > 1e-2:
-            #         clr2 = [255, 0, 0]
-            #     elif self.state2['acc'] < -1e-2:
-            #         clr2 = [0, 0, 255]
+        clr2 = [0, 0, 0]
+        # if goal_op is not None:
+        #     if goal_op == 0:
+        #         clr2 = [255, 0, 0]
+        #     elif goal_op == 1:
+        #         clr2 = [0, 0, 255]
+        # else:
+        #     if self.state2['acc'] > 1e-2:
+        #         clr2 = [255, 0, 0]
+        #     elif self.state2['acc'] < -1e-2:
+        #         clr2 = [0, 0, 255]
 
 
-            pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
-            pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+        pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
+        pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
 
-            pygame.draw.polygon(self.left_screen, [0,0,0], self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
+        pygame.draw.polygon(self.left_screen, [0,0,0], self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+        pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
-            pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + 3*WINDOW_H/5, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, [0,0,0], self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+        pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + 3*WINDOW_H/5, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+        pygame.draw.polygon(self.right_screen, [0,0,0], self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
 
 
-            # if goal is not None:
-            #     if goal == 0:
-            #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 0 : W - START_POINT + 14, :] = [0, 0, 1]
-            #         pygame.draw.polygon(self.right_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
-            #
-            #     elif goal == 1:
-            #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 0 : W - START_POINT + 14, :] = [0.5, 0, 0.5]
-            #         pygame.draw.polygon(self.right_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
-            #     else:
-            #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 0 : W - START_POINT + 14, :] = [1, 0, 0]
-            #         pygame.draw.polygon(self.right_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
-            #
-            # if goal_op is not None:
-            #     if goal_op == 0:
-            #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 14 : W - START_POINT + 0, :] = [0, 0, 1]
-            #         pygame.draw.polygon(self.left_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
-            #     elif goal_op == 1:
-            #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 14 : W - START_POINT + 0, :] = [0.5, 0, 0.5]
-            #         pygame.draw.polygon(self.left_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
-            #     else:
-            #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
-            #         pygame.draw.polygon(self.left_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
+        # if goal is not None:
+        #     if goal == 0:
+        #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 0 : W - START_POINT + 14, :] = [0, 0, 1]
+        #         pygame.draw.polygon(self.right_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
+        #
+        #     elif goal == 1:
+        #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 0 : W - START_POINT + 14, :] = [0.5, 0, 0.5]
+        #         pygame.draw.polygon(self.right_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
+        #     else:
+        #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 0 : W - START_POINT + 14, :] = [1, 0, 0]
+        #         pygame.draw.polygon(self.right_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
+        #
+        # if goal_op is not None:
+        #     if goal_op == 0:
+        #         # self.canvas[H - 2 * START_POINT + 0 : H - 2 * START_POINT + 14, W - START_POINT - 14 : W - START_POINT + 0, :] = [0, 0, 1]
+        #         pygame.draw.polygon(self.left_screen, [0, 0, 255], [(0.8*WINDOW_W, 0.8*WINDOW_H-10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H-10), (0.8*WINDOW_W+10, 0.8*WINDOW_H), (0.8*WINDOW_W, 0.8*WINDOW_H), ], width=0)
+        #     elif goal_op == 1:
+        #         # self.canvas[H - 2 * START_POINT + 14 : H - 2 * START_POINT + 28, W - START_POINT - 14 : W - START_POINT + 0, :] = [0.5, 0, 0.5]
+        #         pygame.draw.polygon(self.left_screen, [128, 0, 128], [(0.8*WINDOW_W, 0.8*WINDOW_H), (0.8*WINDOW_W + 10, 0.8*WINDOW_H), (0.8*WINDOW_W+10, 0.8*WINDOW_H+10), (0.8*WINDOW_W, 0.8*WINDOW_H+10), ], width=0)
+        #     else:
+        #         # self.canvas[H - 2 * START_POINT + 28 : H - 2 * START_POINT + 42, W - START_POINT - 14 : W - START_POINT + 0, :] = [1, 0, 0]
+        #         pygame.draw.polygon(self.left_screen, [255, 0, 0], [(0.8*WINDOW_W, 0.8*WINDOW_H+10), (0.8*WINDOW_W + 10, 0.8*WINDOW_H+10), (0.8*WINDOW_W+10, 0.8*WINDOW_H+20), (0.8*WINDOW_W, 0.8*WINDOW_H+20), ], width=0)
 
-            spd_l = self.font.render("Spd: " + str(round(self.state2['vel'], 2)), 2, (0,0,0))
-            self.left_screen.blit(spd_l, (0.2*WINDOW_W, 0.6*WINDOW_H))
-            r2_l = self.font.render("Rwd:" + str(round(self.r2_accumulate, 2)), 2, (0,0,0))
-            self.left_screen.blit(r2_l, (0.2*WINDOW_W, 0.6*WINDOW_H + 15))
-            self.left_screen.blit(self.font.render("LastR:" + str(round(last_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 30))
-            self.left_screen.blit(self.font.render("Score:" + str(round(sum_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 45))
+        spd_l = self.font.render("Spd: " + str(round(self.state2['vel'], 2)), 2, (0,0,0))
+        self.left_screen.blit(spd_l, (0.2*WINDOW_W, 0.6*WINDOW_H))
+        r2_l = self.font.render("Rwd:" + str(round(self.r2_accumulate, 2)), 2, (0,0,0))
+        self.left_screen.blit(r2_l, (0.2*WINDOW_W, 0.6*WINDOW_H + 15))
+        # self.left_screen.blit(self.font.render("LastR:" + str(round(last_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 30))
+        # self.left_screen.blit(self.font.render("Score:" + str(round(sum_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 45))
 
-            if tag_left:
-                self.left_screen.blit(self.mark_font.render(tag_left, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
+        if tag_left:
+            self.left_screen.blit(self.mark_font.render(tag_left, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
 
-            spd_r = self.font.render("Spd: " + str(round(self.state1['vel'], 2)), 2, (0,0,0))
-            self.right_screen.blit(spd_r, (0.7*WINDOW_W, 0.6*WINDOW_H))
-            r1_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
-            self.right_screen.blit(r1_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
-            self.right_screen.blit(self.font.render("LastR:" + str(round(last_r1, 2)), 2, (0,0,0)), (0.7 * WINDOW_W, 0.6 * WINDOW_H + 30))
-            self.right_screen.blit(self.font.render("Score:" + str(round(sum_r1, 2)), 2, (0,0,0)), (0.7*WINDOW_W, 0.6*WINDOW_H + 45))
-            if tag_right:
-                self.right_screen.blit(self.mark_font.render(tag_right, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
+        spd_r = self.font.render("Spd: " + str(round(self.state1['vel'], 2)), 2, (0,0,0))
+        self.right_screen.blit(spd_r, (0.7*WINDOW_W, 0.6*WINDOW_H))
+        r1_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
+        self.right_screen.blit(r1_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
+        # self.right_screen.blit(self.font.render("LastR:" + str(round(last_r1, 2)), 2, (0,0,0)), (0.7 * WINDOW_W, 0.6 * WINDOW_H + 30))
+        # self.right_screen.blit(self.font.render("Score:" + str(round(sum_r1, 2)), 2, (0,0,0)), (0.7*WINDOW_W, 0.6*WINDOW_H + 45))
+        if tag_right:
+            self.right_screen.blit(self.mark_font.render(tag_right, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
 
+        self.plot(player)
 
-            if player == 1:
-                self.screen.blit(self.right_screen, (WINDOW_W,0))
-
-            elif player == 2:
-                self.screen.blit(self.left_screen, (0,0))
-                self.screen.blit(self.right_screen, (2*WINDOW_W,0))
-            pygame.draw.lines(self.screen, (0,0,0), True, [(WINDOW_W, 0), (WINDOW_W, WINDOW_H)], 3)
+        pygame.time.wait(50)
 
 
 
-            pygame.time.wait(50)
-            pygame.display.update()
+    def plot(self, player=1):
+        if player == 1:
+            self.screen.blit(self.right_screen, (WINDOW_W, 0))
+        elif player == 2:
+            self.screen.blit(self.left_screen, (0, 0))
+            self.screen.blit(self.right_screen, (2 * WINDOW_W, 0))
+        pygame.display.update()
 
 
-        elif mode == "rgb_array":
-            return self.canvas
-        
+    def intro(self):
+        # IMQ & training
+        self.left_screen.blit(self.image, (0,0))
+        self.right_screen.blit(self.image, (0,0))
+        self.plot()
+        pygame.time.wait(1000)
+
+        #Intro
+        self.left_screen.blit(self.font.render("Please pass the ramp quickly without collision", 2, (0, 0, 0)), (0.1 * WINDOW_W, 3*WINDOW_H/5))
+        self.right_screen.blit(self.font.render("Please pass the ramp quickly without collision", 2, (0, 0, 0)), (0.1 * WINDOW_W, 3*WINDOW_H/5))
+        self.plot()
+        pygame.time.wait(5000)
+
+    def prepare(self, player=1):
+        #Fixation
+        self.left_screen.blit(self.image, (0, 0))
+        self.right_screen.blit(self.image, (0, 0))
+        pygame.draw.lines(self.left_screen,  (0, 0, 0), True, [(0.5 * WINDOW_W - 10, 3*WINDOW_H/5),      (0.5 * WINDOW_W + 10, 3*WINDOW_H/5     )], 3)
+        pygame.draw.lines(self.left_screen,  (0, 0, 0), True, [(0.5 * WINDOW_W,      3*WINDOW_H/5 - 10), (0.5 * WINDOW_W,      3*WINDOW_H/5 + 10)], 3)
+        pygame.draw.lines(self.right_screen, (0, 0, 0), True, [(0.5 * WINDOW_W - 10, 3*WINDOW_H/5),      (0.5 * WINDOW_W + 10, 3*WINDOW_H/5     )], 3)
+        pygame.draw.lines(self.right_screen, (0, 0, 0), True, [(0.5 * WINDOW_W,      3*WINDOW_H/5 - 10), (0.5 * WINDOW_W,      3*WINDOW_H/5 + 10)], 3)
+        self.plot()
+        pygame.time.wait(int(np.random.uniform(1000, 3000)))
+
+
+    def feedback(self):
+        self.left_screen.blit(self.image, (0, 0))
+        self.right_screen.blit(self.image, (0, 0))
+        self.left_screen.blit(self.font.render("You earn " + str(round(self.r2_accumulate, 2)) + " points", 2, (0, 0, 0)), (0.3 * WINDOW_W, 3*WINDOW_H/5))
+        self.right_screen.blit(self.font.render("You earn " + str(round(self.r1_accumulate, 2)) + " points", 2, (0, 0, 0)), (0.3 * WINDOW_W, 3*WINDOW_H/5))
+
+        self.plot()
+        pygame.time.wait(3000)
+
+    def finish(self, sum_r1, sum_r2):
+        self.left_screen.blit(self.image, (0, 0))
+        self.right_screen.blit(self.image, (0, 0))
+        self.left_screen.blit(self.font.render("Games completed. Reward: " + str(round(sum_r2, 2)), 2, (0, 0, 0)), (0.2 * WINDOW_W, 3*WINDOW_H/5))
+        self.right_screen.blit(self.font.render("Games completed. Reward: " + str(round(sum_r1, 2)), 2, (0, 0, 0)), (0.2 * WINDOW_W, 3*WINDOW_H/5))
+        self.plot()
+        pygame.time.wait(10000)
+
+
     def close(self):
         cv2.destroyAllWindows()
 

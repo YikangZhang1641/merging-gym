@@ -51,7 +51,7 @@ def main():
     log_path = os.path.join("log", datetime.datetime.now().strftime("%Y--%m--%d %H:%M:%S"))
     os.mkdir(log_path)
 
-    episodes = 100
+    episodes = 5
     collision_count = 0
 
     if OP_MODEL == "hdqn":
@@ -69,7 +69,7 @@ def main():
         # load_path = "2022--03--31 17:16:40normal dqn with OP:selfplay(2.0, 1.0, -10, 0.001)" #不行，过于保守
         # load_path = "2022--03--31 18:43:06normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
         # load_path = "2022--03--31 20:51:13normal dqn with OP:L2(2.0, 1.0, -10, 0.001)"
-        load_path = "2022--03--31 20:41:19normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
+        load_path = "2022--03--31 21:36:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
 
         dqn = DQN(load_path)
         print("using model: dqn")
@@ -84,6 +84,8 @@ def main():
 
     sum_r1, sum_r2 = 0, 0
     last_r1, last_r2 = 0, 0
+
+    env.intro()
     for i in range(episodes):
         state = env.reset()
         next_state = state
@@ -92,12 +94,13 @@ def main():
         action = 2
         action_op = 2
 
-        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="3", tag_right="3")
-        pygame.time.wait(1000)
-        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="2", tag_right="2")
-        pygame.time.wait(1000)
-        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="1", tag_right="1")
-        pygame.time.wait(1000)
+        # env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="3", tag_right="3")
+        # pygame.time.wait(1000)
+        # env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="2", tag_right="2")
+        # pygame.time.wait(1000)
+        # env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="1", tag_right="1")
+        # pygame.time.wait(1000)
+        env.prepare()
 
         filename = os.path.join(log_path, "episode"+str(i))
         with open(filename, 'w') as f:
@@ -117,15 +120,15 @@ def main():
                 # print(sum(key_pressed))
 
                 ########### ego command ###########
-                if key_pressed[pygame.K_KP0]:
+                if key_pressed[pygame.K_0]:
                     action = 0
-                elif key_pressed[pygame.K_KP1]:
+                elif key_pressed[pygame.K_1]:
                     action = 1
-                elif key_pressed[pygame.K_KP2]:
+                elif key_pressed[pygame.K_2]:
                     action = 2
-                elif key_pressed[pygame.K_KP3]:
+                elif key_pressed[pygame.K_3]:
                     action = 3
-                elif key_pressed[pygame.K_KP4]:
+                elif key_pressed[pygame.K_4]:
                     action = 4
 
                 # if key_pressed[pygame.K_UP]:
@@ -139,9 +142,6 @@ def main():
                 #     if action < 0:
                 #         action = 0
                 #     print("ego Down")
-
-
-
 
                 ########## opponent command ###########
                 if OP_MODEL == "hdqn":
@@ -190,6 +190,9 @@ def main():
         last_r2 = env.r2_accumulate
 
         pygame.time.wait(1000)
+
+        env.feedback()
+    env.finish(sum_r1=sum_r1, sum_r2=sum_r2)
 
 
 if __name__ == '__main__':
