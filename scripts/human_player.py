@@ -43,6 +43,7 @@ def op_state(state):
 
 
 OP_MODEL = "dqn"# 定义用的对手车模型
+player = 2 if OP_MODEL == "pvp" else 1
 
 
 def main():
@@ -62,14 +63,15 @@ def main():
         print("using model: hdqn")
 
     elif OP_MODEL == "dqn":
-        # load_path = "2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)" #selfplay
-        # load_path = "2022--03--31 03:37:35normal dqn with OP:L0(2.0, 1.0, -10, 0.001)" #平衡，保持在20
-        # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #激进，35左右
-        # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #不行，持续损失
-        # load_path = "2022--03--31 17:16:40normal dqn with OP:selfplay(2.0, 1.0, -10, 0.001)" #不行，过于保守
-        # load_path = "2022--03--31 18:43:06normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
-        # load_path = "2022--03--31 20:51:13normal dqn with OP:L2(2.0, 1.0, -10, 0.001)"
-        load_path = "2022--03--31 21:36:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)"
+        # load_path = "2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)" #for test, 可视为L0
+        #########################
+        load_path = "2022--03--31 03:37:35normal dqn with OP:L0(2.0, 1.0, -10, 0.001)" # L1: 平衡，保持在20
+        # load_path = "2022--03--31 21:36:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" # L2: 基本匀速20
+        # load_path = "2022--03--31 20:37:39normal dqn with OP:L0(2.0, 1.0, -10, 0.001)" # L1: 激进
+        # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" # L2: 激进，35左右
+        #########################
+        # load_path = "2022--03--31 21:33:10normal dqn with OP:L2(2.0, 1.0, -10, 0.001)" # L3: 激进策略
+
 
         dqn = DQN(load_path)
         print("using model: dqn")
@@ -85,7 +87,7 @@ def main():
     sum_r1, sum_r2 = 0, 0
     last_r1, last_r2 = 0, 0
 
-    env.intro()
+    env.intro(player)
     for i in range(episodes):
         state = env.reset()
         next_state = state
@@ -100,9 +102,9 @@ def main():
         # pygame.time.wait(1000)
         # env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="1", tag_right="1")
         # pygame.time.wait(1000)
-        env.prepare()
+        env.prepare(player=player)
 
-        filename = os.path.join(log_path, "episode"+str(i))
+        filename = os.path.join(log_path, "episode" + str(i) + " " + load_path)
         with open(filename, 'w') as f:
             writer = csv.writer(f)
             writer.writerow(["x2 - x1", "y2 - y1", "self.state2['vel'] - self.state1['vel']", "END_POINT - self.state1['pos']", "self.state1['vel']", "x1 - x2", "y1 - y2", "self.state1['vel'] - self.state2['vel']", "END_POINT - self.state2['pos']", "self.state2['vel']", "action1", "action2", "reward1", "reward2"])
@@ -114,21 +116,21 @@ def main():
                 else:
                     tag_left, tag_right = "Finished", None
 
-                env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left=tag_left, tag_right=tag_right)
+                env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left=tag_left, tag_right=tag_right, player=player)
 
                 key_pressed = pygame.key.get_pressed()
                 # print(sum(key_pressed))
 
                 ########### ego command ###########
-                if key_pressed[pygame.K_0]:
+                if key_pressed[pygame.K_KP0]:
                     action = 0
-                elif key_pressed[pygame.K_1]:
+                elif key_pressed[pygame.K_KP1]:
                     action = 1
-                elif key_pressed[pygame.K_2]:
+                elif key_pressed[pygame.K_KP2]:
                     action = 2
-                elif key_pressed[pygame.K_3]:
+                elif key_pressed[pygame.K_KP3]:
                     action = 3
-                elif key_pressed[pygame.K_4]:
+                elif key_pressed[pygame.K_KP4]:
                     action = 4
 
                 # if key_pressed[pygame.K_UP]:
@@ -185,14 +187,14 @@ def main():
 
         sum_r1 += env.r1_accumulate
         sum_r2 += env.r2_accumulate
-        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="Finished", tag_right="Finished")
+        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="Finished", tag_right="Finished", player=player)
         last_r1 = env.r1_accumulate
         last_r2 = env.r2_accumulate
 
         pygame.time.wait(1000)
 
-        env.feedback()
-    env.finish(sum_r1=sum_r1, sum_r2=sum_r2)
+        env.feedback(player=player)
+    env.finish(sum_r1=sum_r1, sum_r2=sum_r2, player=player)
 
 
 if __name__ == '__main__':

@@ -272,16 +272,16 @@ class MergeEnv(gym.Env):
                 clr1 = [0, 0, 255]
 
         clr2 = [0, 0, 0]
-        # if goal_op is not None:
-        #     if goal_op == 0:
-        #         clr2 = [255, 0, 0]
-        #     elif goal_op == 1:
-        #         clr2 = [0, 0, 255]
-        # else:
-        #     if self.state2['acc'] > 1e-2:
-        #         clr2 = [255, 0, 0]
-        #     elif self.state2['acc'] < -1e-2:
-        #         clr2 = [0, 0, 255]
+        if goal_op is not None:
+            if goal_op == 0:
+                clr2 = [255, 0, 0]
+            elif goal_op == 1:
+                clr2 = [0, 0, 255]
+        else:
+            if self.state2['acc'] > 1e-2:
+                clr2 = [255, 0, 0]
+            elif self.state2['acc'] < -1e-2:
+                clr2 = [0, 0, 255]
 
 
         pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
@@ -352,18 +352,18 @@ class MergeEnv(gym.Env):
         pygame.display.update()
 
 
-    def intro(self):
+    def intro(self, player=1):
         # IMQ & training
         self.left_screen.blit(self.image, (0,0))
         self.right_screen.blit(self.image, (0,0))
-        self.plot()
+        self.plot(player)
         pygame.time.wait(1000)
 
         #Intro
         self.left_screen.blit(self.font.render("Please pass the ramp quickly without collision", 2, (0, 0, 0)), (0.1 * WINDOW_W, 3*WINDOW_H/5))
         self.right_screen.blit(self.font.render("Please pass the ramp quickly without collision", 2, (0, 0, 0)), (0.1 * WINDOW_W, 3*WINDOW_H/5))
-        self.plot()
-        pygame.time.wait(5000)
+        self.plot(player)
+        pygame.time.wait(3000)
 
     def prepare(self, player=1):
         #Fixation
@@ -373,25 +373,25 @@ class MergeEnv(gym.Env):
         pygame.draw.lines(self.left_screen,  (0, 0, 0), True, [(0.5 * WINDOW_W,      3*WINDOW_H/5 - 10), (0.5 * WINDOW_W,      3*WINDOW_H/5 + 10)], 3)
         pygame.draw.lines(self.right_screen, (0, 0, 0), True, [(0.5 * WINDOW_W - 10, 3*WINDOW_H/5),      (0.5 * WINDOW_W + 10, 3*WINDOW_H/5     )], 3)
         pygame.draw.lines(self.right_screen, (0, 0, 0), True, [(0.5 * WINDOW_W,      3*WINDOW_H/5 - 10), (0.5 * WINDOW_W,      3*WINDOW_H/5 + 10)], 3)
-        self.plot()
+        self.plot(player)
         pygame.time.wait(int(np.random.uniform(1000, 3000)))
 
 
-    def feedback(self):
+    def feedback(self, player=1):
         self.left_screen.blit(self.image, (0, 0))
         self.right_screen.blit(self.image, (0, 0))
         self.left_screen.blit(self.font.render("You earn " + str(round(self.r2_accumulate, 2)) + " points", 2, (0, 0, 0)), (0.3 * WINDOW_W, 3*WINDOW_H/5))
         self.right_screen.blit(self.font.render("You earn " + str(round(self.r1_accumulate, 2)) + " points", 2, (0, 0, 0)), (0.3 * WINDOW_W, 3*WINDOW_H/5))
 
-        self.plot()
+        self.plot(player)
         pygame.time.wait(3000)
 
-    def finish(self, sum_r1, sum_r2):
+    def finish(self, sum_r1, sum_r2, player=1):
         self.left_screen.blit(self.image, (0, 0))
         self.right_screen.blit(self.image, (0, 0))
         self.left_screen.blit(self.font.render("Games completed. Reward: " + str(round(sum_r2, 2)), 2, (0, 0, 0)), (0.2 * WINDOW_W, 3*WINDOW_H/5))
         self.right_screen.blit(self.font.render("Games completed. Reward: " + str(round(sum_r1, 2)), 2, (0, 0, 0)), (0.2 * WINDOW_W, 3*WINDOW_H/5))
-        self.plot()
+        self.plot(player)
         pygame.time.wait(10000)
 
 
