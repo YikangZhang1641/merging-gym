@@ -82,6 +82,7 @@ def main():
             current_model.load_state_dict(torch.load(os.path.join(load_path, "eval.pth")))
 
     else:
+        load_path = "pvp"
         print("using model: pvp")
 
     sum_r1, sum_r2 = 0, 0

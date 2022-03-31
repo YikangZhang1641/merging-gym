@@ -160,7 +160,8 @@ class DQN():
 def main():
     Strategy_OP = "L1" # "selfplay"，"L0"或者其他，会保存为文件名
 
-    dqn = DQN()
+    load_path = None
+    dqn = DQN(load_path)
     if Strategy_OP == "selfplay":
         opponent = dqn
     else:

@@ -89,7 +89,7 @@ class MergeEnv(gym.Env):
         self.right_screen = pygame.Surface((WINDOW_W, WINDOW_H))
         self.right_screen.fill((255, 255, 255))
 
-        pygame.display.set_caption('Python numbers')
+        pygame.display.set_caption('On ramp merging experiment')
 
         self.font = pygame.font.Font(None, 17)
         self.mark_font = pygame.font.SysFont(None, 50)
