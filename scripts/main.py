@@ -164,7 +164,7 @@ def main():
     if Strategy_OP == "selfplay":
         opponent = dqn
     else:
-        opponent = DQN("2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)")
+        opponent = DQN("2022--03--31 03:37:35normal dqn with OP:L0(2.0, 1.0, -10, 0.001)")
     
     episodes = 2000
     print("Collecting Experience....")
@@ -205,8 +205,9 @@ def main():
 
             reward, reward_op = rewards
 
-            dqn.store_transition(state, action, reward, next_state)
-            ep_reward += reward
+            if env.winner is not 1:
+                dqn.store_transition(state, action, reward, next_state)
+                ep_reward += reward
 
             if dqn.memory_counter >= MEMORY_CAPACITY and dqn.memory_counter:
                 dqn.learn()

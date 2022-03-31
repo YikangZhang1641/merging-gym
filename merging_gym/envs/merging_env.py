@@ -92,6 +92,7 @@ class MergeEnv(gym.Env):
         # self.screen.fill((255, 255, 255))
 
         self.font = pygame.font.Font(None, 17)
+        self.mark_font = pygame.font.Font(None, 50)
 
         self.ego = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
         self.opponent = pygame.surfarray.make_surface(np.ones([VEHICLE_W, VEHICLE_H]) * 255)
@@ -160,20 +161,25 @@ class MergeEnv(gym.Env):
         # reward2 = -vel_penalty * self.state2['acc'] * self.state2['acc']
 
         if self.state1['pos'] > END_POINT:
-            self.done = True
             if self.winner is None:
                 self.winner = 1
                 reward1 += RFirst
+            elif self.winner is 1:
+                reward1 = 0
             else:
                 reward1 += RSecond
+                self.done = True
 
-        if self.winner is not 2 and self.state2['pos'] >= END_POINT:
+        if self.state2['pos'] >= END_POINT:
             if self.winner is None:
                 self.winner = 2
                 reward2 += RFirst
+            elif self.winner is 2:
+                reward2 = 0
             else:
                 reward2 += RSecond
-        
+                self.done = True
+
         if self.is_collided():
             self.done = True
             reward1 += RCollision
@@ -211,7 +217,7 @@ class MergeEnv(gym.Env):
 
         # 起始条件随机
         # self.state1 = {'pos': START_POINT + np.random.randn() * 5, 'vel': 20.0 + np.random.randn() * 3, 'acc': 0.0}
-        self.state2 = {'pos': START_POINT + np.random.uniform(-10, 10), 'vel': 20.0 + np.random.uniform(-20, 20), 'acc': 0.0}
+        self.state2 = {'pos': START_POINT + np.random.uniform(-VEHICLE_H/2, VEHICLE_H/2), 'vel': 20.0 + np.random.uniform(-5, 5), 'acc': 0.0}
 
         self.r1_accumulate = 0
         self.r2_accumulate = 0
@@ -231,7 +237,7 @@ class MergeEnv(gym.Env):
         p3 = scale * (pygame.math.Vector2(rect.bottomleft) - pivot).rotate(-yaw) + pivot
         return p0, p1, p2, p3
 
-    def render(self, goal = None, goal_op = None, player=2):
+    def render(self, goal = None, goal_op = None, player=2, sum_r1 = 0, sum_r2 = 0, tag_left=None, tag_right=None, last_r1=0, last_r2=0):
         mode = "human"
         assert mode in ["human", "rgb_array"], "Invalid mode, must be either \"human\" or \"rgb_array\""
         if mode == "human":
@@ -270,26 +276,26 @@ class MergeEnv(gym.Env):
                     clr1 = [0, 0, 255]
 
             clr2 = [0, 0, 0]
-            if goal_op is not None:
-                if goal_op == 0:
-                    clr2 = [255, 0, 0]
-                elif goal_op == 1:
-                    clr2 = [0, 0, 255]
-            else:
-                if self.state2['acc'] > 1e-2:
-                    clr2 = [255, 0, 0]
-                elif self.state2['acc'] < -1e-2:
-                    clr2 = [0, 0, 255]
+            # if goal_op is not None:
+            #     if goal_op == 0:
+            #         clr2 = [255, 0, 0]
+            #     elif goal_op == 1:
+            #         clr2 = [0, 0, 255]
+            # else:
+            #     if self.state2['acc'] > 1e-2:
+            #         clr2 = [255, 0, 0]
+            #     elif self.state2['acc'] < -1e-2:
+            #         clr2 = [0, 0, 255]
 
 
             pygame.draw.polygon(self.left_screen, [120,120,120], self.corners(self.opponent, scale * (x2_t - x2) + 3*WINDOW_H/5, scale * (y2_t - y2) + WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.opponent, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
             pygame.draw.polygon(self.right_screen, [120,120,120], self.corners(self.ego, scale*(x1_t-x1)+3*WINDOW_H/5, scale*(y1_t-y1)+WINDOW_W/2, yaw=0, scale=scale)[:2] + self.corners(self.ego, 3*WINDOW_H/5, WINDOW_W/2, yaw=0, scale=scale)[2:], width=0)
 
-            pygame.draw.polygon(self.left_screen, clr1, self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.left_screen, [0,0,0], self.corners(self.ego, scale * (x1 - x2) + 3*WINDOW_H/5, scale * (y1 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
             pygame.draw.polygon(self.right_screen, clr1, self.corners(self.ego, scale * (x1 - x1) + 3*WINDOW_H/5, y1 - y1 + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
             pygame.draw.polygon(self.left_screen, clr2, self.corners(self.opponent, scale * (x2 - x2) + 3*WINDOW_H/5, scale * (y2 - y2) + WINDOW_W/2, yaw=0, scale=scale), width=0)
-            pygame.draw.polygon(self.right_screen, clr2, self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
+            pygame.draw.polygon(self.right_screen, [0,0,0], self.corners(self.opponent, scale * (x2 - x1) + 3*WINDOW_H/5, scale * (y2 - y1) + WINDOW_W/2, yaw=0, scale=scale), width=0)
 
 
 
@@ -318,14 +324,23 @@ class MergeEnv(gym.Env):
 
             spd_l = self.font.render("Spd: " + str(round(self.state2['vel'], 2)), 2, (0,0,0))
             self.left_screen.blit(spd_l, (0.2*WINDOW_W, 0.6*WINDOW_H))
-            r1_l = self.font.render("Rwd:" + str(round(self.r2_accumulate, 2)), 2, (0,0,0))
-            self.left_screen.blit(r1_l, (0.2*WINDOW_W, 0.6*WINDOW_H + 15))
+            r2_l = self.font.render("Rwd:" + str(round(self.r2_accumulate, 2)), 2, (0,0,0))
+            self.left_screen.blit(r2_l, (0.2*WINDOW_W, 0.6*WINDOW_H + 15))
+            self.left_screen.blit(self.font.render("LastR:" + str(round(last_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 30))
+            self.left_screen.blit(self.font.render("Score:" + str(round(sum_r2, 2)), 2, (0,0,0)), (0.2*WINDOW_W, 0.6*WINDOW_H + 45))
 
+            if tag_left:
+                self.left_screen.blit(self.mark_font.render(tag_left, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
 
             spd_r = self.font.render("Spd: " + str(round(self.state1['vel'], 2)), 2, (0,0,0))
             self.right_screen.blit(spd_r, (0.7*WINDOW_W, 0.6*WINDOW_H))
-            r2_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
-            self.right_screen.blit(r2_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
+            r1_r = self.font.render("Rwd:" + str(round(self.r1_accumulate, 2)), 2, (0,0,0))
+            self.right_screen.blit(r1_r, (0.7*WINDOW_W, 0.6*WINDOW_H + 15))
+            self.right_screen.blit(self.font.render("LastR:" + str(round(last_r1, 2)), 2, (0,0,0)), (0.7 * WINDOW_W, 0.6 * WINDOW_H + 30))
+            self.right_screen.blit(self.font.render("Score:" + str(round(sum_r1, 2)), 2, (0,0,0)), (0.7*WINDOW_W, 0.6*WINDOW_H + 45))
+            if tag_right:
+                self.right_screen.blit(self.mark_font.render(tag_right, 2, (0,0,0)), (0.2*WINDOW_W, 0.1*WINDOW_H))
+
 
             if player == 1:
                 self.screen.blit(self.right_screen, (WINDOW_W,0))

@@ -62,7 +62,11 @@ def main():
         print("using model: hdqn")
 
     elif OP_MODEL == "dqn":
-        load_path = "2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)"
+        # load_path = "2022--03--30 18:48:33normal dqn(2.0, 1.0, -10, 0.01)" #selfplay
+        # load_path = "2022--03--31 03:37:35normal dqn with OP:L0(2.0, 1.0, -10, 0.001)" #平衡，保持在20
+        # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #激进，35左右
+        # load_path = "2022--03--31 14:45:59normal dqn with OP:L1(2.0, 1.0, -10, 0.001)" #不行，持续损失
+        # load_path = "2022--03--31 17:16:40normal dqn with OP:selfplay(2.0, 1.0, -10, 0.001)" #不行，过于保守
         dqn = DQN(load_path)
         print("using model: dqn")
 
@@ -74,7 +78,8 @@ def main():
     else:
         print("using model: pvp")
 
-
+    sum_r1, sum_r2 = 0, 0
+    last_r1, last_r2 = 0, 0
     for i in range(episodes):
         state = env.reset()
         next_state = state
@@ -83,12 +88,26 @@ def main():
         action = 2
         action_op = 2
 
+        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="3", tag_right="3")
+        pygame.time.wait(1000)
+        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="2", tag_right="2")
+        pygame.time.wait(1000)
+        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="1", tag_right="1")
+        pygame.time.wait(1000)
+
         filename = os.path.join(log_path, "episode"+str(i))
         with open(filename, 'w') as f:
             writer = csv.writer(f)
             writer.writerow(["x2 - x1", "y2 - y1", "self.state2['vel'] - self.state1['vel']", "END_POINT - self.state1['pos']", "self.state1['vel']", "x1 - x2", "y1 - y2", "self.state1['vel'] - self.state2['vel']", "END_POINT - self.state2['pos']", "self.state2['vel']", "action1", "action2", "reward1", "reward2"])
             while not done:
-                env.render()
+                if env.winner is None:
+                    tag_left, tag_right = None, None
+                elif env.winner == 1:
+                    tag_left, tag_right = None, "Finished"
+                else:
+                    tag_left, tag_right = "Finished", None
+
+                env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left=tag_left, tag_right=tag_right)
 
                 key_pressed = pygame.key.get_pressed()
                 # print(sum(key_pressed))
@@ -129,10 +148,10 @@ def main():
                     action_op = lower_op.choose_action(goal_state_op)
 
                 elif OP_MODEL == "dqn":
-                    action_op = dqn.choose_action(state)
+                    action_op = dqn.choose_action( op_state(state) )
 
                 elif OP_MODEL == "rainbow_dqn":
-                    action_op = current_model.act(state[3:] + state[:3])
+                    action_op = current_model.act( op_state(state) )
 
                 else:
                     if key_pressed[pygame.K_w]:
@@ -151,13 +170,22 @@ def main():
                 pygame.event.pump()
                 next_state, rewards, done, info = env.step(action, action_op)
 
-                writer.writerow(state + [action, action_op] + rewards)
+                if env.winner is not 1:
+                    writer.writerow(state + [action, action_op] + rewards)
 
                 if info["collision"]:
                     collision_count += 1
                     print("Collided!", collision_count / (i + 1))
 
                 state = next_state
+
+        sum_r1 += env.r1_accumulate
+        sum_r2 += env.r2_accumulate
+        env.render(last_r1=last_r1, last_r2=last_r2, sum_r1=sum_r1, sum_r2=sum_r2, tag_left="Finished", tag_right="Finished")
+        last_r1 = env.r1_accumulate
+        last_r2 = env.r2_accumulate
+
+        pygame.time.wait(1000)
 
 
 if __name__ == '__main__':
